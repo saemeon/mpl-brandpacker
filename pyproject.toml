@@ -23,6 +23,8 @@ requires-python = ">=3.9"
 dependencies = [
     "dash",
     "plotly",
+    "matplotlib",
+    "kaleido",
 ]
 
 [project.urls]
@@ -66,6 +68,9 @@ s5ndt = ["py.typed"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "--cov=src/s5ndt --cov-report=term-missing"
+
+[tool.ty.environment]
+python = ".venv"
 
 [tool.ty.src]
 include = ["src"]
