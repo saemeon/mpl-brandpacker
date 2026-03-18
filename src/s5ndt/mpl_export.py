@@ -178,7 +178,10 @@ def mpl_export_button(
     )
 
     wizard = build_wizard(
-        wizard_id, body, trigger_label=label, title="Export as matplotlib figure",
+        wizard_id,
+        body,
+        trigger_label=label,
+        title="Export as matplotlib figure",
         header_actions=menu,
     )
     config.register_populate_callback(wizard.open_input)

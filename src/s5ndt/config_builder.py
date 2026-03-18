@@ -139,9 +139,13 @@ class Config:
             fid = _field_id(self._config_id, f)
             if f.type == "datetime":
                 outputs.append(Output(fid, "date", allow_duplicate=True))
-                outputs.append(Output(
-                    _time_field_id(self._config_id, f), "value", allow_duplicate=True
-                ))
+                outputs.append(
+                    Output(
+                        _time_field_id(self._config_id, f),
+                        "value",
+                        allow_duplicate=True,
+                    )
+                )
             elif f.type == "date":
                 outputs.append(Output(fid, "date", allow_duplicate=True))
             else:
@@ -198,8 +202,8 @@ def build_config(config_id: str, fn: Callable) -> Config:
     fn :
         Callable whose parameters define the fields.
         Parameters whose names start with ``_`` are skipped.
-        Parameters whose default is a :class:`FieldHook` instance get their
-        initial value populated at runtime via :meth:`Config.register_populate_callback`.
+        Parameters whose default is a :class:`FieldHook` get their initial
+        value populated at runtime via :meth:`Config.register_populate_callback`.
 
     Returns
     -------

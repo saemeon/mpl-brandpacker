@@ -11,16 +11,20 @@ app = Dash(__name__)
 
 # --- figure ---
 
-graph = dcc.Graph(id="main-graph", figure=go.Figure(
-    go.Scatter(x=[1, 2, 3, 4, 5], y=[4, 2, 5, 1, 3], mode="markers"),
-    layout={
-        "title": {"text": "All-types example"},
-        "xaxis": {"title": {"text": "X axis"}},
-    },
-))
+graph = dcc.Graph(
+    id="main-graph",
+    figure=go.Figure(
+        go.Scatter(x=[1, 2, 3, 4, 5], y=[4, 2, 5, 1, 3], mode="markers"),
+        layout={
+            "title": {"text": "All-types example"},
+            "xaxis": {"title": {"text": "X axis"}},
+        },
+    ),
+)
 
 
 # --- renderer 1: full custom renderer, all field types ---
+
 
 def full_renderer(
     _fig_data,
@@ -59,6 +63,7 @@ def full_renderer(
 # --- renderer 2: snapshot with FromPlotly title — strips plotly title,
 #     pre-fills from the live figure ---
 
+
 def snapshot_with_title(
     _fig_data,
     title: str = FromPlotly("layout.title.text", graph),  # type: ignore[assignment]
@@ -77,20 +82,27 @@ def snapshot_with_title(
 
 # --- layout ---
 
-app.layout = html.Div([
-    graph,
-    html.Div([
-        mpl_export_button(
-            graph_id="main-graph", renderer=full_renderer, label="Export (custom)"
+app.layout = html.Div(
+    [
+        graph,
+        html.Div(
+            [
+                mpl_export_button(
+                    graph_id="main-graph",
+                    renderer=full_renderer,
+                    label="Export (custom)",
+                ),
+                mpl_export_button(
+                    graph_id="main-graph",
+                    renderer=snapshot_with_title,
+                    label="Export (snapshot+title)",
+                ),
+                mpl_export_button(graph_id="main-graph", label="Export (snapshot)"),
+            ],
+            style={"display": "flex", "gap": "8px"},
         ),
-        mpl_export_button(
-            graph_id="main-graph",
-            renderer=snapshot_with_title,
-            label="Export (snapshot+title)",
-        ),
-        mpl_export_button(graph_id="main-graph", label="Export (snapshot)"),
-    ], style={"display": "flex", "gap": "8px"}),
-])
+    ]
+)
 
 if __name__ == "__main__":
     app.run(debug=True)

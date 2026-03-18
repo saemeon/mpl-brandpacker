@@ -95,13 +95,25 @@ def build_wizard(
                 },
                 children=[
                     html.Div(
-                        style={"display": "flex", "justifyContent": "space-between", "alignItems": "center"},
+                        style={
+                            "display": "flex",
+                            "justifyContent": "space-between",
+                            "alignItems": "center",
+                        },
                         children=[
                             html.Strong(title),
                             html.Div(
-                                style={"display": "flex", "gap": "4px", "alignItems": "center"},
+                                style={
+                                    "display": "flex",
+                                    "gap": "4px",
+                                    "alignItems": "center",
+                                },
                                 children=[
-                                    *([header_actions] if header_actions is not None else []),
+                                    *(
+                                        [header_actions]
+                                        if header_actions is not None
+                                        else []
+                                    ),
                                     html.Button("✕", id=close_id),
                                 ],
                             ),
@@ -131,4 +143,7 @@ def build_wizard(
     def update_visibility(is_open):
         return {"display": "block"} if is_open else {"display": "none"}
 
-    return Wizard(div=html.Div([html.Button(trigger_label, id=trigger_id), store, modal]), open_input=open_input)
+    return Wizard(
+        div=html.Div([html.Button(trigger_label, id=trigger_id), store, modal]),
+        open_input=open_input,
+    )

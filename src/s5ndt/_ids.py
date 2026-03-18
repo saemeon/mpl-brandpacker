@@ -16,7 +16,9 @@ class _IdGenerator:
 
     def __call__(self, prefix: str = "") -> str:
         self._counter += 1
-        return f"_s5ndt_{prefix}_{self._counter}" if prefix else f"_s5ndt_{self._counter}"
+        return (
+            f"_s5ndt_{prefix}_{self._counter}" if prefix else f"_s5ndt_{self._counter}"
+        )
 
 
 id_generator = _IdGenerator()
