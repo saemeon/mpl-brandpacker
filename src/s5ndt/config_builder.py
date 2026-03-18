@@ -56,8 +56,8 @@ class FromComponent(FieldHook):
     def required_states(self) -> list[State]:
         return [self._state]
 
-    def get_default(self, value: Any) -> Any:
-        return value
+    def get_default(self, *state_values: Any) -> Any:
+        return state_values[0] if state_values else None
 
 
 # --- field descriptor ---

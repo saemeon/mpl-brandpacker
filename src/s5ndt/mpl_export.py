@@ -35,7 +35,8 @@ class FromPlotly(FromComponent):
         super().__init__(graph, "figure")
         self.path = path
 
-    def get_default(self, figure: dict) -> Any:
+    def get_default(self, *state_values: Any) -> Any:
+        figure = state_values[0] if state_values else {}
         return _get_nested(figure, self.path)
 
 
