@@ -20,7 +20,10 @@ maintainers = [
     { name = "Simon Niederberger", email = "s.niederberger@hotmail.com" },
 ]
 requires-python = ">=3.10"
-dependencies = []
+dependencies = [
+    "dash>=4.0.0",
+    "plotly>=6.6.0",
+]
 
 [project.urls]
 Homepage = "https://github.com/saemeon/s5ndt"
