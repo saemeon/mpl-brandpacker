@@ -1,10 +1,10 @@
-site_name: s5ndt
-site_description: s5n dash tools — Plotly Dash utilities
+site_name: dash-fn-tools
+site_description: dash fn tools — Plotly Dash utilities
 site_author: Simon Niederberger
-site_url: https://saemeon.github.io/s5ndt/
+site_url: https://saemeon.github.io/dash-fn-tools/
 
-repo_url: https://github.com/saemeon/s5ndt
-repo_name: saemeon/s5ndt
+repo_url: https://github.com/saemeon/dash-fn-tools
+repo_name: saemeon/dash-fn-tools
 
 copyright: "Copyright &copy; 2026 Simon Niederberger"
 
@@ -135,4 +135,4 @@ extra:
     default: latest
   social:
     - icon: fontawesome/brands/github
-      link: https://github.com/saemeon/s5ndt
+      link: https://github.com/saemeon/dash-fn-tools
