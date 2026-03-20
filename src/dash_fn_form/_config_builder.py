@@ -6,12 +6,15 @@ from __future__ import annotations
 import copy
 import inspect
 import types
+import warnings
 from dataclasses import dataclass, field
 from datetime import date, datetime
 from typing import Any, Callable, Literal, Union, get_args, get_origin, get_type_hints
 
 import dash
 from dash import Input, Output, State, dcc, html
+
+_registered_config_ids: set[str] = set()
 
 # --- hook protocol ---
 
@@ -94,29 +97,96 @@ class Config:
         return _build_kwargs(self._fields, values)
 
     def register_populate_callback(self, open_input: Input) -> None:
-        """Register callbacks that populate hooked fields on first open.
+        """Register a single callback that populates all hooked fields on open.
 
         Existing values are preserved — fields are only populated when empty.
         """
-        for f in self._fields:
-            if f.hook is None:
-                continue
-            fid = _field_id(self._config_id, f)
-            hook = f.hook
+        hooked = [f for f in self._fields if f.hook is not None]
+        if not hooked:
+            return
 
-            @dash.callback(
-                Output(fid, "value"),
-                open_input,
-                State(fid, "value"),
-                *hook.required_states(),
-                prevent_initial_call=True,
-            )
-            def populate(is_open, current_value, *state_values, _hook=hook):
-                if not is_open:
-                    return dash.no_update
-                if current_value not in (None, ""):
-                    return dash.no_update  # preserve user edits
-                return _hook.get_default(*state_values)
+        # De-duplicated hook states across all hooks
+        seen: set[tuple] = set()
+        hook_states: list[State] = []
+        for f in hooked:
+            for s in f.hook.required_states():  # type: ignore[union-attr]
+                key = (s.component_id, s.component_property)
+                if key not in seen:
+                    seen.add(key)
+                    hook_states.append(s)
+
+        # One output + one current-value State per output slot
+        outputs: list[Output] = []
+        current_states: list[State] = []
+        for f in hooked:
+            fid = _field_id(self._config_id, f)
+            if f.type == "datetime":
+                tid = _time_field_id(self._config_id, f)
+                outputs.append(Output(fid, "date", allow_duplicate=True))
+                outputs.append(Output(tid, "value", allow_duplicate=True))
+                current_states.append(State(fid, "date"))
+                current_states.append(State(tid, "value"))
+            elif f.type == "date":
+                outputs.append(Output(fid, "date", allow_duplicate=True))
+                current_states.append(State(fid, "date"))
+            else:
+                outputs.append(Output(fid, "value", allow_duplicate=True))
+                current_states.append(State(fid, "value"))
+
+        fields = hooked
+
+        @dash.callback(
+            *outputs,
+            open_input,
+            *current_states,
+            *hook_states,
+            prevent_initial_call=True,
+        )
+        def populate(is_open, *all_state_values):
+            if not is_open:
+                return [dash.no_update] * len(outputs)
+
+            n_current = len(current_states)
+            current_values = list(all_state_values[:n_current])
+            hook_state_values = all_state_values[n_current:]
+
+            state_map = {
+                (s.component_id, s.component_property): v
+                for s, v in zip(hook_states, hook_state_values)
+            }
+
+            results: list[Any] = []
+            cur = iter(current_values)
+            for f in fields:
+                hook = f.hook
+                resolved = [
+                    state_map[(s.component_id, s.component_property)]
+                    for s in hook.required_states()  # type: ignore[union-attr]
+                ]
+                if f.type == "datetime":
+                    cur_date, cur_time = next(cur), next(cur)
+                    if cur_date not in (None, "") or cur_time not in (None, ""):
+                        results += [dash.no_update, dash.no_update]
+                        continue
+                    val = hook.get_default(*resolved)  # type: ignore[union-attr]
+                    if isinstance(val, datetime):
+                        results += [val.date().isoformat(), val.strftime("%H:%M")]
+                    else:
+                        results += [dash.no_update, dash.no_update]
+                elif f.type == "date":
+                    if next(cur) not in (None, ""):
+                        results.append(dash.no_update)
+                        continue
+                    val = hook.get_default(*resolved)  # type: ignore[union-attr]
+                    results.append(
+                        val.isoformat() if isinstance(val, date) else dash.no_update
+                    )
+                else:
+                    if next(cur) not in (None, ""):
+                        results.append(dash.no_update)
+                        continue
+                    results.append(hook.get_default(*resolved))  # type: ignore[union-attr]
+            return results
 
     def register_restore_callback(self, restore_input: Input) -> None:
         """Register a callback that resets all fields to their defaults.
@@ -249,6 +319,14 @@ def build_config(
         ``.build_kwargs(values)`` — reconstruct a ``dict`` from callback values.
         ``.register_populate_callback(open_input)`` — wire hook defaults on open.
     """
+    if config_id in _registered_config_ids:
+        warnings.warn(
+            f"dash-fn-form: config_id {config_id!r} is already in use. "
+            "Duplicate IDs will cause Dash callback errors.",
+            UserWarning,
+            stacklevel=2,
+        )
+    _registered_config_ids.add(config_id)
     styles = styles or {}
     class_names = class_names or {}
     overrides = _normalize_overrides(component_overrides or {})
@@ -281,12 +359,17 @@ def _normalize_overrides(overrides: dict) -> dict:
     return result
 
 
+def field_id(config_id: str, name: str) -> str:
+    """Return the Dash component ID for a field by name."""
+    return f"_fnform_field_{config_id}_{name}"
+
+
 def _field_id(config_id: str, field: _Field) -> str:
-    return f"_s5ndt_field_{config_id}_{field.name}"
+    return field_id(config_id, field.name)
 
 
 def _time_field_id(config_id: str, field: _Field) -> str:
-    return f"_s5ndt_field_{config_id}_{field.name}_time"
+    return f"_fnform_field_{config_id}_{field.name}_time"
 
 
 def _infer_type(annotation: Any, default: Any) -> tuple[str, tuple, bool]:
@@ -537,9 +620,14 @@ def _build_kwargs(fields: list[_Field], values: tuple) -> dict:
             if date_val is None:
                 kwargs[f.name] = None if f.optional else f.default
             else:
-                kwargs[f.name] = datetime.fromisoformat(
-                    f"{date_val}T{time_val or '00:00'}"
-                )
+                time_str = time_val or "00:00"
+                # Pad "H:MM" → "HH:MM" so fromisoformat accepts it
+                if len(time_str) == 4:
+                    time_str = "0" + time_str
+                try:
+                    kwargs[f.name] = datetime.fromisoformat(f"{date_val}T{time_str}")
+                except ValueError:
+                    kwargs[f.name] = None if f.optional else f.default
         else:
             kwargs[f.name] = _coerce(f, next(it))
     return kwargs

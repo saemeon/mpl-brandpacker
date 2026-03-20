@@ -7,8 +7,8 @@ try:
 except ImportError:
     __version__ = "unknown"
 
+from dash_fn_form import FieldHook, FromComponent, build_config
 from s5ndt._ids import id_generator
-from s5ndt.config_builder import FieldHook, FromComponent, build_config
 from s5ndt.dropdown import build_dropdown
 from s5ndt.fig_export import FromPlotly, graph_exporter
 from s5ndt.wizard import Wizard, build_wizard

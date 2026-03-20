@@ -11,8 +11,8 @@ from typing import Any, Callable, cast
 import dash
 from dash import Input, Output, State, dcc, html
 
+from dash_fn_form import FromComponent, build_config, field_id
 from s5ndt._ids import id_generator
-from s5ndt.config_builder import FromComponent, build_config
 from s5ndt.dropdown import build_dropdown
 from s5ndt.wizard import build_wizard
 
@@ -424,8 +424,7 @@ def graph_exporter(
 
     if _has_snapshot:
         _capture_states = [
-            State(f"_s5ndt_field_{config_id}_{name}", "value")
-            for name in _active_capture
+            State(field_id(config_id, name), "value") for name in _active_capture
         ]
         strip_patches = _build_strip_patches(
             strip_title,
