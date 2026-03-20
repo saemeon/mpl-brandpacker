@@ -35,11 +35,11 @@ run `git remote add template https://github.com/saemeon/pytemplate.git`
 run `git fetch template`
 
 3. Create a local branch that tracks the template's main
-run `git checkout -b template template/main`
+run `git checkout -b pytemplate-main template/main`
 
 4. Switch back to your work branch and merge the template in
 run `git checkout main`
-run `git merge template --allow-unrelated-histories`
+run `git merge pytemplate-main --allow-unrelated-histories`
 
 ## License
 
