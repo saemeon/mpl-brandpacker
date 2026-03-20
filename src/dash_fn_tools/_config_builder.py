@@ -7,6 +7,7 @@ import copy
 import inspect
 import types
 import warnings
+from enum import Enum
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import date, datetime
@@ -149,7 +150,8 @@ class Config:
                     if next(cur) not in (None, ""):
                         results.append(dash.no_update)
                         continue
-                    results.append(hook.get_default(*resolved))
+                    val = hook.get_default(*resolved)
+                    results.append(val.name if isinstance(val, Enum) else val)
             return results
 
     def register_restore_callback(self, restore_input: Input) -> None:
@@ -220,6 +222,8 @@ class Config:
                     results.append([f.name] if val else [])
                 elif f.type in ("list", "tuple"):
                     results.append(", ".join(str(v) for v in val) if val else "")
+                elif f.type == "enum":
+                    results.append(val.name if isinstance(val, Enum) else val)
                 else:
                     results.append(val if val is not None else "")
             return results
@@ -266,6 +270,7 @@ def build_config(
         * ``"date"`` → ``dcc.DatePickerSingle``
         * ``"datetime"`` → ``dcc.DatePickerSingle`` + ``dcc.Input(type="text")``
         * ``"literal"`` → ``dcc.Dropdown``
+        * ``"enum"`` → ``dcc.Dropdown`` (from ``Enum`` subclass)
         * ``"list"`` / ``"tuple"`` → ``dcc.Input(type="text")``
         * ``"label"`` → ``html.Label`` on every field label
     class_names :
@@ -422,6 +427,8 @@ def _infer_type(annotation: Any, default: Any) -> tuple[str, tuple, bool]:
         return "tuple", args, False
     if origin is Literal:
         return "literal", args, False
+    if inspect.isclass(annotation) and issubclass(annotation, Enum):
+        return "enum", (annotation,), False
     return "str", (), False
 
 
@@ -631,6 +638,17 @@ def _make_component(config_id: str, f: _Field, spec: FieldSpec, fid: str) -> Any
             style=spec.style,
             className=spec.class_name,
         )
+    if f.type == "enum":
+        enum_cls = f.args[0]
+        members = list(enum_cls)
+        default_name = f.default.name if isinstance(f.default, enum_cls) else members[0].name
+        return dcc.Dropdown(
+            id=fid,
+            options=[{"label": m.name, "value": m.name} for m in members],
+            value=default_name,
+            style=spec.style,
+            className=spec.class_name,
+        )
     return dcc.Input(
         id=fid,
         type="text",
@@ -670,6 +688,12 @@ def _coerce(f: _Field, value: Any) -> Any:
         return f.default
     if f.type == "literal":
         return value
+    if f.type == "enum":
+        enum_cls = f.args[0]
+        try:
+            return enum_cls[value]
+        except KeyError:
+            return f.default
     return value or ""
 
 
