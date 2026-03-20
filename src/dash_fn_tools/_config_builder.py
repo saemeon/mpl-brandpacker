@@ -336,7 +336,7 @@ def build_config(
     config_id: str,
     fn: Callable,
     *,
-    field_specs: dict[str, FieldSpec | FieldHook | dict] | None = None,
+    field_specs: dict[str, FieldSpec | FieldHook] | None = None,
     styles: dict[str, dict] | None = None,
     class_names: dict[str, str] | None = None,
     cols: int = 1,
@@ -355,9 +355,8 @@ def build_config(
         Parameters whose names start with ``_`` are skipped.
     field_specs :
         Per-field customisation, keyed by parameter name.
-        Values may be a :class:`FieldSpec`, a bare :class:`FieldHook`
-        (treated as ``FieldSpec(hook=hook)``), or a plain ``dict``
-        (passed as keyword arguments to :class:`FieldSpec`).
+        Values may be a :class:`FieldSpec` or a bare :class:`FieldHook`
+        (treated as ``FieldSpec(hook=hook)``).
         Takes precedence over ``styles`` / ``class_names``, but is
         overridden by ``Annotated[T, FieldSpec(...)]`` in the signature.
     styles :
@@ -468,7 +467,7 @@ def _time_field_id(config_id: str, f: _Field) -> str:
 
 def _resolve_spec(
     f: _Field,
-    external_specs: dict[str, FieldSpec | FieldHook | dict],
+    external_specs: dict[str, FieldSpec | FieldHook],
     styles: dict[str, dict],
     class_names: dict[str, str],
 ) -> FieldSpec:
@@ -478,9 +477,7 @@ def _resolve_spec(
         spec = copy.copy(f.spec)
     else:
         ext = external_specs.get(f.name)
-        if isinstance(ext, dict):
-            spec = FieldSpec(**ext)
-        elif isinstance(ext, FieldHook):
+        if isinstance(ext, FieldHook):
             spec = FieldSpec(hook=ext)
         elif isinstance(ext, FieldSpec):
             spec = copy.copy(ext)
