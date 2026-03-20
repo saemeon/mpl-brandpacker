@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, cast
 
 import dash
 from dash import Input, Output, dcc, html
@@ -98,7 +98,7 @@ def build_wizard(
         if not hasattr(trigger, "id") or not trigger.id:
             raise ValueError("Custom trigger component must have an 'id' attribute.")
         trigger_component = trigger
-    trigger_listen_id = trigger_component.id
+    trigger_listen_id = cast(Any, trigger_component).id
 
     modal = html.Div(
         id=modal_id,

@@ -6,7 +6,7 @@ from __future__ import annotations
 import base64
 import inspect
 import io
-from typing import Any, Callable
+from typing import Any, Callable, cast
 
 import dash
 from dash import Input, Output, State, dcc, html
@@ -39,7 +39,7 @@ class FromPlotly(FromComponent):
 
 # --- internal helpers ---
 
-_UNSET = object()
+_UNSET: Callable = cast(Callable, object())
 
 
 def _make_snapshot_fn(img_b64: str) -> Callable[[], bytes]:
@@ -240,6 +240,7 @@ def graph_exporter(
     strip_colorbar: bool = False,
     strip_margin: bool = False,
     filename: str = "figure.png",
+    autogenerate: bool = False,
     styles: dict | None = None,
     class_names: dict | None = None,
     component_overrides: dict | None = None,
@@ -290,6 +291,8 @@ def graph_exporter(
         Zero all figure margins before capture.
     filename :
         Download filename including extension. Defaults to ``"figure.png"``.
+    autogenerate :
+        Whether Auto-generate is checked by default. Defaults to ``False``.
     styles :
         Dict mapping slot names to CSS-property dicts. Slots:
         ``"dialog"`` (modal container), ``"title"`` (header title),
@@ -327,7 +330,7 @@ def graph_exporter(
 
         renderer = snapshot_renderer
 
-    graph_id = graph if isinstance(graph, str) else graph.id
+    graph_id = graph if isinstance(graph, str) else cast(Any, graph).id
     uid = id_generator(graph_id)
     config_id = f"_s5ndt_cfg_{uid}"
     wizard_id = f"_s5ndt_fig_{uid}"
@@ -368,7 +371,7 @@ def graph_exporter(
             dcc.Checklist(
                 id=autogenerate_id,
                 options=[{"label": " Auto-generate", "value": "auto"}],
-                value=[],
+                value=["auto"] if autogenerate else [],
                 style={"padding": "4px 8px"},
                 labelStyle={
                     k: v
@@ -404,6 +407,12 @@ def graph_exporter(
     config.register_populate_callback(wizard.open_input)
     config.register_restore_callback(Input(restore_id, "n_clicks"))
 
+    dash.clientside_callback(
+        "function(v) { return v != null && v.length > 0; }",
+        Output(generate_id, "disabled"),
+        Input(autogenerate_id, "value"),
+    )
+
     @dash.callback(
         Output(interval_id, "disabled"),
         Output(interval_id, "n_intervals"),
@@ -437,19 +446,25 @@ def graph_exporter(
             prevent_initial_call=True,
         )
 
+        _fig_states = [State(graph_id, "figure")] if _has_fig_data else []
+
         @dash.callback(
             Output(preview_id, "src"),
             Input(snapshot_store_id, "data"),
-            State(graph_id, "figure"),
+            *_fig_states,
             *config.states,
             prevent_initial_call=True,
         )
-        def generate_preview(_img_b64, _fig_data, *field_values):
+        def generate_preview(_img_b64, *args):
             if not _img_b64:
                 return dash.no_update
-            kwargs = config.build_kwargs(field_values)
+            if _has_fig_data:
+                fig_data, *field_values = args
+            else:
+                fig_data, field_values = {}, args
+            kwargs = config.build_kwargs(tuple(field_values))
             data = _call_renderer(
-                renderer, _has_fig_data, True, _fig_data, _img_b64, kwargs
+                renderer, _has_fig_data, True, fig_data, _img_b64, kwargs
             )
             return _to_src(data)
 
