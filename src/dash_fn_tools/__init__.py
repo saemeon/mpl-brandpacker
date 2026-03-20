@@ -6,6 +6,7 @@
 from dash_fn_tools._config_builder import (
     Config,
     FieldHook,
+    FieldSpec,
     FromComponent,
     build_config,
     field_id,
@@ -15,6 +16,7 @@ __all__ = [
     "build_config",
     "Config",
     "FieldHook",
+    "FieldSpec",
     "FromComponent",
     "field_id",
 ]
