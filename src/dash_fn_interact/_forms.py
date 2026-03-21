@@ -30,6 +30,53 @@ from dash import Input, Output, State, dcc, html
 
 from dash_fn_interact._spec import Field, FieldHook, _FieldFixed
 
+_CONSTRAINT_ATTRS: list[tuple[str, str]] = [
+    ("ge", "min"), ("le", "max"), ("gt", "min"), ("lt", "max"),
+    ("multiple_of", "step"), ("min_length", "min_length"),
+    ("max_length", "max_length"), ("pattern", "pattern"),
+]
+
+
+def _read_constraint_meta(meta: Any) -> dict[str, Any]:
+    """Extract numeric/string constraints from a Pydantic FieldInfo or annotated_types object.
+
+    Returns a dict with keys matching :class:`Field` attribute names (``min``, ``max``,
+    ``step``, ``min_length``, ``max_length``, ``pattern``).  Empty dict if *meta* is
+    neither a recognised type.
+
+    Imports are done lazily so they pick up packages installed after module load.
+    """
+    items: list[Any] = []
+
+    try:
+        from pydantic.fields import FieldInfo as _PydanticFieldInfo  # noqa: PLC0415
+        if isinstance(meta, _PydanticFieldInfo):
+            # Pydantic v2: constraints are stored as annotated_types objects in .metadata
+            items = getattr(meta, "metadata", [])
+    except ImportError:
+        pass
+
+    if not items:
+        try:
+            import annotated_types as _at  # noqa: PLC0415
+            if isinstance(meta, _at.BaseMetadata):
+                # annotated_types used directly (e.g. Annotated[int, Ge(0), Le(100)])
+                items = [meta]
+        except ImportError:
+            pass
+
+    if not items:
+        return {}
+
+    result: dict[str, Any] = {}
+    for m in items:
+        for attr, key in _CONSTRAINT_ATTRS:
+            val = getattr(m, attr, None)
+            if val is not None:
+                result.setdefault(key, val)
+    return result
+
+
 _registered_config_ids: set[str] = set()
 
 
@@ -666,6 +713,17 @@ class Form(html.Div):
                 annotated_spec = next(
                     (m for m in inner_args[1:] if isinstance(m, Field)), None
                 )
+                constraints: dict[str, Any] = {}
+                for m in inner_args[1:]:
+                    constraints.update(_read_constraint_meta(m))
+                if constraints:
+                    if annotated_spec is None:
+                        annotated_spec = Field(**constraints)
+                    else:
+                        annotated_spec = copy.copy(annotated_spec)
+                        for key, val in constraints.items():
+                            if getattr(annotated_spec, key, None) is None:
+                                setattr(annotated_spec, key, val)
 
             if isinstance(raw, Field):
                 if annotated_spec is None:
@@ -1006,6 +1064,18 @@ def _get_fields(
                 elif annotated_spec.validator is None:
                     annotated_spec = copy.copy(annotated_spec)
                     annotated_spec.validator = bare_validator
+            # Pydantic FieldInfo / annotated_types constraints
+            constraints: dict[str, Any] = {}
+            for m in inner_args[1:]:
+                constraints.update(_read_constraint_meta(m))
+            if constraints:
+                if annotated_spec is None:
+                    annotated_spec = Field(**constraints)
+                else:
+                    annotated_spec = copy.copy(annotated_spec)
+                    for key, val in constraints.items():
+                        if getattr(annotated_spec, key, None) is None:
+                            setattr(annotated_spec, key, val)
 
         # Legacy hook-as-default: fold into annotated_spec so _resolve_spec sees it
         if hook_from_default is not None and annotated_spec is None:
