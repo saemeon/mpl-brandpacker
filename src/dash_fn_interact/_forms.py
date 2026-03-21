@@ -412,9 +412,29 @@ class Form(html.Div):
             prevent_initial_call=True,
         )
 
+    def to_plotly_json(self) -> dict:
+        # During Dash's layout serialization, __getattr__ must not return a
+        # FieldRef for HTML prop names that coincide with field names (e.g.
+        # "title").  We set a flag so __getattr__ can raise AttributeError
+        # for those lookups, making Dash treat them as "not set".
+        object.__setattr__(self, "_in_serialization", True)
+        try:
+            return super().to_plotly_json()
+        finally:
+            object.__setattr__(self, "_in_serialization", False)
+
     def __getattr__(self, name: str) -> FieldRef:
         # Only called when normal attribute lookup fails.
         # Use object.__getattribute__ to avoid infinite recursion.
+        #
+        # During to_plotly_json, suppress field lookup for Dash prop names so
+        # that HTML props coinciding with field names (e.g. "title") are not
+        # serialized as FieldRef objects.
+        d = object.__getattribute__(self, "__dict__")
+        if d.get("_in_serialization"):
+            prop_names = d.get("_prop_names", ())
+            if name in prop_names:
+                raise AttributeError(name)
         try:
             fields = object.__getattribute__(self, "_fields")
             config_id = object.__getattribute__(self, "_config_id")
