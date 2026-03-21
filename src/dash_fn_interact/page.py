@@ -3,10 +3,8 @@
 
 """Implicit (Streamlit-style) convenience layer over :class:`~dash_fn_interact.Page`.
 
-Instead of constructing a :class:`~dash_fn_interact.Page` object explicitly,
-import ``interact``, ``add``, and ``run`` from this module and call them at
-module level.  A shared default :class:`~dash_fn_interact.Page` instance
-accumulates the panels in call order.
+Inspired by ``matplotlib.pyplot``: a module-level singleton accumulates panels
+in call order; :func:`run` renders everything — no ``Page`` object needed.
 
 Usage::
 
@@ -19,21 +17,11 @@ Usage::
     def sine_wave(amplitude: float = 1.0, frequency: float = 2.0):
         ...
 
-    add(html.Hr())
-
-    @interact
-    def histogram(n_samples: int = 500, mean: float = 0.0):
-        ...
-
     run(debug=True)
 
-Notes
------
-The default page is a module-level singleton.  It is created once at import
-time and accumulates all panels until ``run()`` is called.  This means the
-module cannot be safely re-imported in the same process to start a fresh page
-— use :class:`~dash_fn_interact.Page` directly if you need multiple pages or
-want explicit control.
+For power users, :func:`get_page` exposes the current singleton (analogous to
+``plt.gcf()``) and :func:`new_page` starts a fresh one (analogous to
+``plt.figure()``).
 """
 
 from __future__ import annotations
@@ -43,20 +31,52 @@ from typing import Any
 
 from dash_fn_interact._page import Page
 
-_page = Page()
+_current: Page = Page()
+
+
+# -- pyplot-style helpers --------------------------------------------------
+
+
+def get_page() -> Page:
+    """Return the current default :class:`~dash_fn_interact.Page` singleton.
+
+    Analogous to ``matplotlib.pyplot.gcf()``.  Useful when you need to call
+    a :class:`~dash_fn_interact.Page` method not exposed at module level.
+    """
+    return _current
+
+
+def new_page(*, max_width: int = 960, manual: bool = False) -> Page:
+    """Replace the default page with a fresh one and return it.
+
+    Analogous to ``matplotlib.pyplot.figure()``.  Use this to start a new
+    page in the same process (e.g. in tests or notebooks) without discarding
+    the old one.
+
+    Parameters
+    ----------
+    max_width, manual :
+        Forwarded to :class:`~dash_fn_interact.Page`.
+    """
+    global _current
+    _current = Page(max_width=max_width, manual=manual)
+    return _current
+
+
+# -- convenience wrappers --------------------------------------------------
 
 
 def interact(
     fn: Callable | None = None,
     *,
-    _manual: bool = False,
+    _manual: bool | None = None,
     **kwargs: Any,
 ) -> Any:
     """Add an interact panel to the default page.
 
     See :meth:`~dash_fn_interact.Page.interact` for full documentation.
     """
-    return _page.interact(fn, _manual=_manual, **kwargs)
+    return _current.interact(fn, _manual=_manual, **kwargs)
 
 
 def add(*components: Any) -> None:
@@ -64,7 +84,7 @@ def add(*components: Any) -> None:
 
     See :meth:`~dash_fn_interact.Page.add` for full documentation.
     """
-    _page.add(*components)
+    _current.add(*components)
 
 
 def run(**kwargs: Any) -> None:
@@ -72,4 +92,4 @@ def run(**kwargs: Any) -> None:
 
     See :meth:`~dash_fn_interact.Page.run` for full documentation.
     """
-    _page.run(**kwargs)
+    _current.run(**kwargs)
