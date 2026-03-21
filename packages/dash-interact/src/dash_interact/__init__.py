@@ -16,9 +16,6 @@ Re-exports the full dash-fn-interact engine plus the page/singleton API::
     page.run(debug=True)
 """
 
-from dash_interact import page
-from dash_interact.page import Page, add, current, interact, run
-
 # Re-export dash-fn-interact engine for users who install only dash-interact
 from dash_fn_interact import (
     Field,
@@ -26,6 +23,7 @@ from dash_fn_interact import (
     FieldMaker,
     FieldRef,
     FnForm,
+    FnPanel,
     Form,
     FromComponent,
     build_fn_panel,
@@ -37,12 +35,20 @@ from dash_fn_interact import (
     register_renderer,
 )
 
+from dash_interact import html, page
+from dash_interact.html import *  # noqa: F401, F403 — exposes di.H1, di.P, etc.
+from dash_interact.interact import interact, interactive, interactive_output
+from dash_interact.page import Page, add, current, run
+
 __all__ = [
     # page API
     "Page",
     "add",
     "current",
+    "html",
     "interact",
+    "interactive",
+    "interactive_output",
     "page",
     "run",
     # engine re-exports
@@ -50,6 +56,7 @@ __all__ = [
     "FieldHook",
     "FieldMaker",
     "FieldRef",
+    "FnPanel",
     "FnForm",
     "Form",
     "FromComponent",

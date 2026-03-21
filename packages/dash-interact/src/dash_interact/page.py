@@ -22,54 +22,14 @@ from collections.abc import Callable
 from typing import Any
 
 from dash import Dash, html
-
 from dash_fn_interact.fn_interact import build_fn_panel
 from dash_fn_interact.utils import _caller_name, _in_jupyter
 
+from dash_interact._page_manager import _PageManager
+from dash_interact.html import *  # noqa: F401, F403 — exposes page.H1, page.P, etc.
+from dash_interact.interact import interact as interact  # noqa: F401
+
 _THIS_MODULES = {"dash_interact.page"}
-
-
-class _PageManager:
-    """Mirrors matplotlib's ``Gcf`` — tracks the active :class:`Page`."""
-
-    _page: Page | None = None
-    _hook_registered: bool = False
-
-    @classmethod
-    def activate(cls, p: Page) -> None:
-        cls._page = p
-        cls._register_jupyter_hook()
-
-    @classmethod
-    def is_active(cls) -> bool:
-        return cls._page is not None
-
-    @classmethod
-    def current(cls) -> Page:
-        """Return the active page, creating one if needed (like ``plt.gcf()``)."""
-        if cls._page is None:
-            Page()  # __init__ calls activate
-        return cls._page  # type: ignore[return-value]
-
-    @classmethod
-    def _register_jupyter_hook(cls) -> None:
-        if cls._hook_registered:
-            return
-        cls._hook_registered = True
-        try:
-            from IPython import get_ipython  # noqa: PLC0415
-
-            ip = get_ipython()
-            if ip is not None and ip.__class__.__name__ == "ZMQInteractiveShell":
-
-                def _auto_display() -> None:
-                    if cls._page is not None and cls._page.children:
-                        cls._page.run()
-                        Page(max_width=cls._page._max_width, manual=cls._page._manual)
-
-                ip.events.register("post_execute", _auto_display)
-        except (ImportError, AttributeError):
-            pass
 
 
 class Page(html.Div):
@@ -225,21 +185,6 @@ def current() -> Page:
     return _PageManager.current()
 
 
-def interact(
-    fn: Callable | None = None,
-    *,
-    _id: str | None = None,
-    _manual: bool | None = None,
-    _loading: bool = True,
-    _render: Callable[[Any], Any] | None = None,
-    **kwargs: Any,
-) -> html.Div | Callable:
-    """Add an interact panel to the current page."""
-    return _PageManager.current().interact(
-        fn, _id=_id, _manual=_manual, _loading=_loading, _render=_render, **kwargs
-    )
-
-
 def add(*components: Any) -> None:
     """Append arbitrary Dash components to the current page."""
     _PageManager.current().add(*components)
@@ -248,20 +193,3 @@ def add(*components: Any) -> None:
 def run(**kwargs: Any) -> None:
     """Build and run the current page as a Dash app."""
     _PageManager.current().run(**kwargs)
-
-
-def __getattr__(name: str) -> Any:
-    """Proxy ``html.*`` element constructors onto the current page.
-
-    ``page.H1("title")`` is shorthand for ``page.add(html.H1("title"))``.
-    """
-    html_cls = getattr(html, name, None)
-    if html_cls is not None:
-
-        def _factory(*args: Any, **kwargs: Any) -> Any:
-            comp = html_cls(*args, **kwargs)
-            _PageManager.current().add(comp)
-            return comp
-
-        return _factory
-    raise AttributeError(f"module 'dash_interact.page' has no attribute {name!r}")

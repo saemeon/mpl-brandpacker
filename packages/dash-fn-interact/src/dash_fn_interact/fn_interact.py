@@ -14,6 +14,38 @@ from dash_fn_interact._forms import FnForm
 from dash_fn_interact._renderers import to_component
 
 
+class FnPanel(html.Div):
+    """An interactive panel returned by :func:`build_fn_panel`.
+
+    Subclass of ``html.Div`` — embed it anywhere in a Dash layout.
+    Exposes the form and output sub-components as named attributes for
+    split-layout use cases::
+
+        panel = build_fn_panel(fn)
+        app.layout = html.Div([
+            html.Div([panel.form], className="sidebar"),
+            html.Div([panel.output], className="main"),
+        ])
+    """
+
+    def __init__(
+        self, children: list[Any], *, form: FnForm, output: html.Div
+    ) -> None:
+        self._form = form
+        self._output = output
+        super().__init__(children)
+
+    @property
+    def form(self) -> FnForm:
+        """The form controls sub-component."""
+        return self._form
+
+    @property
+    def output(self) -> html.Div:
+        """The output area sub-component (unwrapped from ``dcc.Loading``)."""
+        return self._output
+
+
 def build_fn_panel(
     fn: Callable,
     *,
@@ -22,7 +54,7 @@ def build_fn_panel(
     _loading: bool = True,
     _render: Callable[[Any], Any] | None = None,
     **kwargs: Any,
-) -> html.Div:
+) -> FnPanel:
     """Build and return a self-contained interactive panel.
 
     Registers Dash callbacks and returns an ``html.Div``.  Has no knowledge
@@ -56,18 +88,6 @@ def build_fn_panel(
 
     if _manual:
         btn_id = f"_dft_interact_btn_{config_id}"
-        panel = html.Div(
-            [
-                cfg,
-                html.Button(
-                    "Apply",
-                    id=btn_id,
-                    n_clicks=0,
-                    style={"marginTop": "8px", "padding": "6px 16px", "cursor": "pointer"},
-                ),
-                output_div,
-            ]
-        )
 
         @callback(
             Output(output_id, "children"),
@@ -82,10 +102,24 @@ def build_fn_panel(
                 return html.Pre(f"Error: {exc}", style={"color": "#d9534f", "fontFamily": "monospace"})
             return to_component(result, _render)
 
+        return FnPanel(
+            [
+                cfg,
+                html.Button(
+                    "Apply",
+                    id=btn_id,
+                    n_clicks=0,
+                    style={"marginTop": "8px", "padding": "6px 16px", "cursor": "pointer"},
+                ),
+                output_div,
+            ],
+            form=cfg,
+            output=_inner,
+        )
+
     else:
         cfg_states: list[State] = object.__getattribute__(cfg, "states")
         inputs = [Input(s.component_id, s.component_property) for s in cfg_states]
-        panel = html.Div([cfg, output_div])
 
         @callback(Output(output_id, "children"), *inputs)
         def _on_change(*values: Any) -> Any:
@@ -95,4 +129,4 @@ def build_fn_panel(
                 return html.Pre(f"Error: {exc}", style={"color": "#d9534f", "fontFamily": "monospace"})
             return to_component(result, _render)
 
-    return panel
+        return FnPanel([cfg, output_div], form=cfg, output=_inner)

@@ -12,13 +12,14 @@ from dash_fn_interact._field_components import (
 from dash_fn_interact._forms import FieldRef, FnForm, Form, field_id
 from dash_fn_interact._renderers import register_renderer
 from dash_fn_interact._spec import Field, FieldHook, FromComponent, fixed
-from dash_fn_interact.fn_interact import build_fn_panel
+from dash_fn_interact.fn_interact import FnPanel, build_fn_panel
 
 __all__ = [
     "Field",
     "FieldHook",
     "FieldMaker",
     "FieldRef",
+    "FnPanel",
     "FnForm",
     "Form",
     "FromComponent",
