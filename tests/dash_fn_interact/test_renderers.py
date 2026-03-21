@@ -127,3 +127,37 @@ def test_registry_checked_before_builtins():
     register_renderer(str, lambda s: html.H1(s))
     result = to_component("hi", None)
     assert isinstance(result, html.H1)
+
+
+# ── dict rendering ────────────────────────────────────────────────────────────
+
+
+def test_dict_returns_div():
+    result = to_component({"a": 1, "b": 2}, None)
+    assert isinstance(result, html.Div)
+
+
+def test_dict_empty_returns_div():
+    result = to_component({}, None)
+    assert isinstance(result, html.Div)
+    assert result.children == []
+
+
+def test_dict_keys_appear_as_labels():
+    result = to_component({"mean": 3.14, "std": 0.5}, None)
+    json_str = str(result.to_plotly_json())
+    assert "mean" in json_str
+    assert "std" in json_str
+
+
+def test_dict_values_rendered_recursively():
+    result = to_component({"msg": "hello **world**"}, None)
+    # The string value should be rendered as Markdown somewhere in the tree
+    json_str = str(result.to_plotly_json())
+    assert "Markdown" in json_str
+
+
+def test_dict_values_can_be_mixed_types():
+    result = to_component({"n": 42, "text": "hi", "flag": True}, None)
+    assert isinstance(result, html.Div)
+    assert len(result.children) == 3

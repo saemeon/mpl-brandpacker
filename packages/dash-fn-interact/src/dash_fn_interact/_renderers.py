@@ -67,6 +67,7 @@ def to_component(result: Any, renderer: Callable[[Any], Any] | None) -> Any:
     3. Built-ins (in order):
        - ``go.Figure`` → ``dcc.Graph``
        - Dash component → as-is
+       - ``dict`` → labelled card grid
        - ``str`` → ``dcc.Markdown``
        - ``int`` / ``float`` / ``bool`` → ``html.P``
        - ``pd.DataFrame`` → ``DataTable`` (or ``html.Table`` fallback)
@@ -105,6 +106,10 @@ def to_component(result: Any, renderer: Callable[[Any], Any] | None) -> Any:
     # Built-in: Dash component → as-is
     if hasattr(result, "_type"):
         return result
+
+    # Built-in: dict → labelled card grid
+    if isinstance(result, dict):
+        return _dict_to_component(result, renderer)
 
     # Built-in: str → Markdown
     if isinstance(result, str):
@@ -166,6 +171,31 @@ def _matplotlib_to_img(fig: Any) -> Any:
         src=f"data:image/png;base64,{encoded}",
         style={"maxWidth": "100%"},
     )
+
+
+def _dict_to_component(d: dict, renderer: Callable[[Any], Any] | None) -> html.Div:
+    _label_style = {"color": "#888", "fontSize": "0.75rem", "marginRight": "6px"}
+    rows = []
+    for key, val in d.items():
+        content = to_component(val, renderer)
+        label = html.Span(str(key), style=_label_style)
+        # scalars: single inline row — "key  value"
+        if isinstance(content, (html.P, dcc.Markdown)) or content is None:
+            rows.append(
+                html.Div(
+                    [label, content],
+                    style={"display": "flex", "alignItems": "baseline", "gap": "4px", "marginBottom": "4px"},
+                )
+            )
+        else:
+            # rich content (figure, table, …): label on top, content below
+            rows.append(
+                html.Div(
+                    [label, html.Div(content, style={"marginTop": "4px"})],
+                    style={"marginBottom": "8px"},
+                )
+            )
+    return html.Div(rows)
 
 
 def _error(msg: str) -> html.Pre:

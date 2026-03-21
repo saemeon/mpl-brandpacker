@@ -93,6 +93,8 @@ class Page(html.Div):
         _manual: bool | None = None,
         _loading: bool = True,
         _render: Callable[[Any], Any] | None = None,
+        _cache: bool = False,
+        _cache_maxsize: int = 128,
         **kwargs: Any,
     ) -> FnPanel | Callable:
         """Add an interact panel to this page."""
@@ -106,6 +108,8 @@ class Page(html.Div):
                     _manual=_manual,
                     _loading=_loading,
                     _render=_render,
+                    _cache=_cache,
+                    _cache_maxsize=_cache_maxsize,
                     **kwargs,
                 )
 
@@ -116,6 +120,8 @@ class Page(html.Div):
             _manual=self._manual if _manual is None else _manual,
             _loading=_loading,
             _render=_render,
+            _cache=_cache,
+            _cache_maxsize=_cache_maxsize,
             **kwargs,
         )
         cast("list[Any]", self.children).append(panel)

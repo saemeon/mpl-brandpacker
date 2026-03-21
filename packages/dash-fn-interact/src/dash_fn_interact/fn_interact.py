@@ -5,6 +5,7 @@
 
 from __future__ import annotations
 
+import functools
 from collections.abc import Callable
 from typing import Any
 
@@ -44,6 +45,30 @@ class FnPanel(html.Div):
         return self._output
 
 
+def _make_hashable(v: Any) -> Any:
+    if isinstance(v, list):
+        return tuple(_make_hashable(x) for x in v)
+    return v
+
+
+def _cached_caller(
+    fn: Callable, cfg: FnForm, maxsize: int
+) -> Callable[..., Any]:
+    """Return a wrapper around fn that memoises by the raw Dash values tuple."""
+
+    @functools.lru_cache(maxsize=maxsize)
+    def _inner(*hashed: Any) -> Any:
+        return fn(**cfg.build_kwargs(hashed))
+
+    def _call(*values: Any) -> Any:
+        try:
+            return _inner(*(_make_hashable(v) for v in values))
+        except TypeError:
+            return fn(**cfg.build_kwargs(values))
+
+    return _call
+
+
 def build_fn_panel(
     fn: Callable,
     *,
@@ -51,6 +76,8 @@ def build_fn_panel(
     _manual: bool = False,
     _loading: bool = True,
     _render: Callable[[Any], Any] | None = None,
+    _cache: bool = False,
+    _cache_maxsize: int = 128,
     **kwargs: Any,
 ) -> FnPanel:
     """Build and return a self-contained interactive panel.
@@ -73,6 +100,11 @@ def build_fn_panel(
         Wrap the output area in ``dcc.Loading`` (default ``True``).
     _render :
         Optional converter applied to *fn*'s return value before display.
+    _cache :
+        Cache function call results by input values (default ``False``).
+        Skips re-calling *fn* when the same field values are submitted again.
+    _cache_maxsize :
+        Maximum number of cached results (LRU eviction).  Default ``128``.
     **kwargs :
         Per-field shorthands forwarded to :class:`FnForm`.
     """
@@ -80,6 +112,7 @@ def build_fn_panel(
     output_id = f"_dft_interact_out_{config_id}"
 
     cfg: FnForm = FnForm(config_id, fn, **kwargs)
+    _call = _cached_caller(fn, cfg, _cache_maxsize) if _cache else None
 
     _inner = html.Div(id=output_id, style={"marginTop": "16px"})
     output_div = dcc.Loading(_inner, type="circle") if _loading else _inner
@@ -95,7 +128,7 @@ def build_fn_panel(
         )
         def _on_apply(_n: int, *values: Any) -> Any:
             try:
-                result = fn(**cfg.build_kwargs(values))
+                result = _call(*values) if _call is not None else fn(**cfg.build_kwargs(values))
             except Exception as exc:
                 return html.Pre(
                     f"Error: {exc}",
@@ -129,7 +162,7 @@ def build_fn_panel(
         @callback(Output(output_id, "children"), *inputs)
         def _on_change(*values: Any) -> Any:
             try:
-                result = fn(**cfg.build_kwargs(values))
+                result = _call(*values) if _call is not None else fn(**cfg.build_kwargs(values))
             except Exception as exc:
                 return html.Pre(
                     f"Error: {exc}",

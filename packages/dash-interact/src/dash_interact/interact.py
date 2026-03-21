@@ -33,7 +33,7 @@ from typing import Any
 from dash import Input, Output, callback, dcc, html
 from dash_fn_interact._forms import FnForm
 from dash_fn_interact._renderers import to_component
-from dash_fn_interact.fn_interact import FnPanel, build_fn_panel
+from dash_fn_interact.fn_interact import FnPanel, _cached_caller, build_fn_panel
 
 from dash_interact._page_manager import _PageManager
 
@@ -45,6 +45,8 @@ def interact(
     _manual: bool | None = None,
     _loading: bool = True,
     _render: Callable[[Any], Any] | None = None,
+    _cache: bool = False,
+    _cache_maxsize: int = 128,
     **kwargs: Any,
 ) -> FnPanel | Callable:
     """Add an interact panel to the current page.
@@ -68,7 +70,14 @@ def interact(
         def sine_wave(amplitude: float = 1.0): ...
     """
     return _PageManager.current().interact(
-        fn, _id=_id, _manual=_manual, _loading=_loading, _render=_render, **kwargs
+        fn,
+        _id=_id,
+        _manual=_manual,
+        _loading=_loading,
+        _render=_render,
+        _cache=_cache,
+        _cache_maxsize=_cache_maxsize,
+        **kwargs,
     )
 
 
@@ -79,6 +88,8 @@ def interactive(
     _manual: bool = False,
     _loading: bool = True,
     _render: Callable[[Any], Any] | None = None,
+    _cache: bool = False,
+    _cache_maxsize: int = 128,
     **kwargs: Any,
 ) -> FnPanel:
     """Build an embeddable interactive panel.
@@ -105,6 +116,8 @@ def interactive(
         _manual=_manual,
         _loading=_loading,
         _render=_render,
+        _cache=_cache,
+        _cache_maxsize=_cache_maxsize,
         **kwargs,
     )
 
@@ -115,6 +128,8 @@ def interactive_output(
     *,
     _loading: bool = True,
     _render: Callable[[Any], Any] | None = None,
+    _cache: bool = False,
+    _cache_maxsize: int = 128,
 ) -> dcc.Loading | html.Div:
     """Build a decoupled output area wired to an existing :class:`~dash_fn_interact.FnForm`.
 
@@ -151,10 +166,12 @@ def interactive_output(
     _inner = html.Div(id=output_id, style={"marginTop": "16px"})
     output_div = dcc.Loading(_inner, type="circle") if _loading else _inner
 
+    _call = _cached_caller(fn, form, _cache_maxsize) if _cache else None
+
     @callback(Output(output_id, "children"), *inputs)
     def _on_change(*values: Any) -> Any:
         try:
-            result = fn(**form.build_kwargs(values))
+            result = _call(*values) if _call is not None else fn(**form.build_kwargs(values))
         except Exception as exc:
             return html.Pre(
                 f"Error: {exc}",

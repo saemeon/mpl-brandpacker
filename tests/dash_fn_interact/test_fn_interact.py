@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from dash import dcc, html
 from dash_fn_interact import FnForm
-from dash_fn_interact.fn_interact import FnPanel, build_fn_panel
+from dash_fn_interact.fn_interact import FnPanel, _cached_caller, build_fn_panel
 
 
 def _panel(fn, **kwargs):
@@ -144,3 +144,77 @@ def test_auto_mode_has_no_apply_button():
         return False
 
     assert not _has_button(panel)
+
+
+# ── caching ───────────────────────────────────────────────────────────────────
+
+
+def test_cached_caller_reuses_result():
+    call_count = [0]
+
+    def fn(x: float = 1.0):
+        call_count[0] += 1
+        return x * 2
+
+    uid = f"_t_cache_{id(fn)}"
+    cfg = FnForm(uid, fn)
+    caller = _cached_caller(fn, cfg, maxsize=128)
+
+    caller(1.0)
+    caller(1.0)  # same values — should hit cache
+    caller(2.0)  # different value — new call
+
+    assert call_count[0] == 2
+
+
+def test_cached_caller_different_values_not_cached():
+    call_count = [0]
+
+    def fn(x: float = 1.0):
+        call_count[0] += 1
+        return x
+
+    uid = f"_t_cache2_{id(fn)}"
+    cfg = FnForm(uid, fn)
+    caller = _cached_caller(fn, cfg, maxsize=128)
+
+    caller(1.0)
+    caller(2.0)
+    caller(3.0)
+
+    assert call_count[0] == 3
+
+
+def test_cached_caller_bool_list_values():
+    """Checkbox values are lists — _make_hashable must handle them."""
+    call_count = [0]
+
+    def fn(flag: bool = False):
+        call_count[0] += 1
+        return flag
+
+    uid = f"_t_cache3_{id(fn)}"
+    cfg = FnForm(uid, fn)
+    caller = _cached_caller(fn, cfg, maxsize=128)
+
+    caller([])       # unchecked
+    caller([])       # same — cached
+    caller(["flag"]) # checked — new call
+
+    assert call_count[0] == 2
+
+
+def test_build_fn_panel_cache_false_by_default():
+    def fn(x: float = 1.0):
+        pass
+
+    panel = _panel(fn)
+    assert isinstance(panel, FnPanel)  # builds without error, cache=False is default
+
+
+def test_build_fn_panel_cache_true():
+    def fn(x: float = 1.0):
+        pass
+
+    panel = _panel(fn, _cache=True)
+    assert isinstance(panel, FnPanel)
