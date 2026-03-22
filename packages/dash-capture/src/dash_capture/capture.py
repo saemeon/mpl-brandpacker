@@ -197,15 +197,115 @@ def capture_binding(
     return CaptureBinding(store=store, store_id=store_id, element_id=el_id)
 
 
+@dataclass
+class BatchBinding:
+    """Return value of :func:`capture_batch`.
+
+    Attributes
+    ----------
+    stores :
+        List of ``dcc.Store`` components — place all in your layout.
+    bindings :
+        Dict mapping element IDs to their :class:`CaptureBinding`.
+    """
+
+    stores: list[dcc.Store]
+    bindings: dict[str, CaptureBinding]
+
+
+def capture_batch(
+    elements: list[str | Any],
+    strategy: CaptureStrategy | None = None,
+    trigger: Input | None = None,
+) -> BatchBinding:
+    """Capture multiple elements with a single trigger.
+
+    Creates one :class:`CaptureBinding` per element, all armed by the
+    same trigger. The user processes each element's result independently.
+
+    Parameters
+    ----------
+    elements :
+        List of Dash components or string IDs to capture.
+    strategy :
+        Shared capture strategy. Defaults to ``plotly_strategy()``.
+    trigger :
+        A Dash ``Input`` that triggers all captures simultaneously.
+
+    Returns
+    -------
+    BatchBinding
+        ``.stores`` — list of ``dcc.Store`` to place in layout.
+        ``.bindings`` — dict of ``{element_id: CaptureBinding}``.
+
+    Example::
+
+        batch = capture_batch(
+            ["graph-1", "graph-2", "graph-3"],
+            trigger=Input("capture-all", "n_clicks"),
+        )
+        app.layout = html.Div([
+            *graphs,
+            *batch.stores,
+            html.Button("Capture all", id="capture-all"),
+        ])
+
+        @app.callback(
+            Output("results", "children"),
+            [Input(b.store_id, "data") for b in batch.bindings.values()],
+            prevent_initial_call=True,
+        )
+        def on_batch(*base64_images):
+            # Process all captured images
+            ...
+    """
+    bindings: dict[str, CaptureBinding] = {}
+    stores: list[dcc.Store] = []
+
+    for element in elements:
+        binding = capture_binding(element, strategy=strategy, trigger=trigger)
+        el_id = binding.element_id
+        bindings[el_id] = binding
+        stores.append(binding.store)
+
+    return BatchBinding(stores=stores, bindings=bindings)
+
+
 # ═══════════════════════════════════════════════════════════════════════════
 # High-level API: capture_graph / capture_element (wizard with form)
 # ═══════════════════════════════════════════════════════════════════════════
 
 
 def _build_modal_body(
-    config_div, generate_id, download_id, preview_id,
-    interval_id, snapshot_store_id, styles, class_names,
+    config_div, generate_id, download_id, preview_id, copy_id,
+    error_id, interval_id, snapshot_store_id, has_fields,
+    styles, class_names,
 ) -> html.Div:
+    # Only show Generate button if there are form fields to configure
+    action_buttons = []
+    if has_fields:
+        action_buttons.append(html.Button(
+            "Generate", id=generate_id,
+            style=styles.get("button"),
+            className=class_names.get("button", ""),
+        ))
+
+    action_buttons += [
+        dcc.Download(id=download_id),
+        html.Div(style={"display": "flex", "gap": "4px"}, children=[
+            html.Button(
+                "Download", id=f"{download_id}_btn",
+                style=styles.get("button"),
+                className=class_names.get("button", ""),
+            ),
+            html.Button(
+                "Copy", id=copy_id,
+                style=styles.get("button"),
+                className=class_names.get("button", ""),
+            ),
+        ]),
+    ]
+
     return html.Div(
         style={"display": "flex", "gap": "24px"},
         children=[
@@ -214,27 +314,20 @@ def _build_modal_body(
                     "display": "flex", "flexDirection": "column",
                     "gap": "8px", "minWidth": "160px",
                 },
-                children=[
-                    config_div,
-                    html.Button(
-                        "Generate", id=generate_id,
-                        style=styles.get("button"),
-                        className=class_names.get("button", ""),
-                    ),
-                    dcc.Download(id=download_id),
-                    html.Button(
-                        "Download", id=f"{download_id}_btn",
-                        style=styles.get("button"),
-                        className=class_names.get("button", ""),
-                    ),
-                ],
+                children=[config_div, *action_buttons],
             ),
             html.Div(
-                style={"position": "relative", "width": "400px", "height": "300px"},
-                children=[dcc.Loading(
-                    type="circle",
-                    children=[html.Img(id=preview_id, style={"maxWidth": "400px"})],
-                )],
+                style={"position": "relative", "width": "400px", "minHeight": "200px"},
+                children=[
+                    dcc.Loading(
+                        type="circle",
+                        children=[html.Img(id=preview_id, style={"maxWidth": "400px"})],
+                    ),
+                    html.Div(
+                        id=error_id,
+                        style={"color": "red", "fontSize": "13px", "marginTop": "8px"},
+                    ),
+                ],
             ),
             dcc.Interval(
                 id=interval_id, interval=500,
@@ -268,11 +361,14 @@ def _wire_wizard(
     preview_id = ids["preview"]
     generate_id = ids["generate"]
     download_id = ids["download"]
+    copy_id = ids["copy"]
+    error_id = ids["error"]
     interval_id = ids["interval"]
     restore_id = ids["restore"]
     menu_id = ids["menu"]
     autogenerate_id = ids["autogen"]
     snapshot_store_id = ids["snapshot"]
+    has_fields = bool(config.states)
 
     menu = build_dropdown(
         menu_id,
@@ -299,8 +395,9 @@ def _wire_wizard(
     )
 
     body = _build_modal_body(
-        config, generate_id, download_id, preview_id,
-        interval_id, snapshot_store_id, styles, class_names,
+        config, generate_id, download_id, preview_id, copy_id,
+        error_id, interval_id, snapshot_store_id, has_fields,
+        styles, class_names,
     )
 
     wizard = build_wizard(
@@ -348,26 +445,31 @@ def _wire_wizard(
 
         @dash.callback(
             Output(preview_id, "src"),
+            Output(error_id, "children"),
             Input(snapshot_store_id, "data"),
             *_fig_states, *config.states,
             prevent_initial_call=True,
         )
         def generate_preview(_img_b64, *args):
             if not _img_b64:
-                return dash.no_update
+                return dash.no_update, dash.no_update
             if has_fig_data:
                 fig_data, *field_values = args
             else:
                 fig_data, field_values = {}, args
             kwargs = config.build_kwargs(tuple(field_values))
-            return _to_src(_call_renderer(
-                renderer, has_fig_data, True, fig_data, _img_b64, kwargs
-            ))
+            try:
+                return _to_src(_call_renderer(
+                    renderer, has_fig_data, True, fig_data, _img_b64, kwargs
+                )), ""
+            except Exception as e:
+                return dash.no_update, f"Error: {e}"
     else:
         _fig_states2 = [State(element_id, "figure")] if has_fig_data else []
 
         @dash.callback(
             Output(preview_id, "src"),
+            Output(error_id, "children"),
             Input(generate_id, "n_clicks"),
             Input(interval_id, "n_intervals"),
             *_fig_states2,
@@ -376,15 +478,18 @@ def _wire_wizard(
         )
         def generate_preview(n_clicks, n_intervals, *args):
             if not n_clicks and not n_intervals:
-                return dash.no_update
+                return dash.no_update, dash.no_update
             if has_fig_data:
                 _fig_data, *field_values = args
             else:
                 _fig_data, field_values = {}, args
             kwargs = config.build_kwargs(tuple(field_values))
-            return _to_src(_call_renderer(
-                renderer, has_fig_data, False, _fig_data, "", kwargs
-            ))
+            try:
+                return _to_src(_call_renderer(
+                    renderer, has_fig_data, False, _fig_data, "", kwargs
+                )), ""
+            except Exception as e:
+                return dash.no_update, f"Error: {e}"
 
     _fig_states_ag = [State(element_id, "figure")] if has_fig_data else []
 
@@ -435,6 +540,29 @@ def _wire_wizard(
             filename,
         )
 
+    # --- copy to clipboard (clientside) ---
+    dash.clientside_callback(
+        """
+        async function(n_clicks, src) {
+            if (!n_clicks || !src) return window.dash_clientside.no_update;
+            try {
+                const resp = await fetch(src);
+                const blob = await resp.blob();
+                await navigator.clipboard.write([
+                    new ClipboardItem({ [blob.type]: blob })
+                ]);
+            } catch (e) {
+                console.error('Copy to clipboard failed:', e);
+            }
+            return window.dash_clientside.no_update;
+        }
+        """,
+        Output(copy_id, "n_clicks"),
+        Input(copy_id, "n_clicks"),
+        State(preview_id, "src"),
+        prevent_initial_call=True,
+    )
+
     return wizard.div
 
 
@@ -466,8 +594,8 @@ def _make_wizard(
 
     uid = id_generator(element_id)
     ids = {k: f"_dcap_{k}_{uid}" for k in (
-        "cfg", "wiz", "preview", "generate", "download",
-        "interval", "restore", "menu", "autogen", "snapshot",
+        "cfg", "wiz", "preview", "generate", "download", "copy",
+        "error", "interval", "restore", "menu", "autogen", "snapshot",
     )}
 
     config = FnForm(

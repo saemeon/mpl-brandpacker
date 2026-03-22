@@ -18,6 +18,8 @@
 #' @param strip_margin Zero all figure margins before capture.
 #' @param width Capture width in pixels (NULL = use displayed size).
 #' @param height Capture height in pixels (NULL = use displayed size).
+#' @param format Output format: \code{"png"}, \code{"jpeg"}, \code{"webp"},
+#'   \code{"svg"}.
 #' @return A list with class \code{"capture_strategy"}.
 #' @export
 plotly_strategy <- function(strip_title = FALSE,
@@ -27,7 +29,8 @@ plotly_strategy <- function(strip_title = FALSE,
                             strip_colorbar = FALSE,
                             strip_margin = FALSE,
                             width = NULL,
-                            height = NULL) {
+                            height = NULL,
+                            format = "png") {
   patches <- character(0)
 
   if (strip_title) {
@@ -74,7 +77,7 @@ plotly_strategy <- function(strip_title = FALSE,
     )
   }
 
-  opts <- list(format = "png")
+  opts <- list(format = format)
   if (!is.null(width)) opts$width <- width
   if (!is.null(height)) opts$height <- height
 
@@ -95,14 +98,15 @@ plotly_strategy <- function(strip_title = FALSE,
 #' \code{tags$script(src = "https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.0/html2canvas.min.js")}).
 #'
 #' @param scale Resolution multiplier (default 2).
+#' @param format Output format: \code{"png"}, \code{"jpeg"}/\code{"jpg"}.
 #' @return A list with class \code{"capture_strategy"}.
 #' @export
-html2canvas_strategy <- function(scale = 2) {
+html2canvas_strategy <- function(scale = 2, format = "png") {
   structure(
     list(
       strategy = "html2canvas",
       preprocess_js = NULL,
-      opts = list(scale = scale)
+      opts = list(scale = scale, format = format)
     ),
     class = "capture_strategy"
   )

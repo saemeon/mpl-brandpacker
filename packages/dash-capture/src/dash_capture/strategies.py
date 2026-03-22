@@ -42,6 +42,8 @@ class CaptureStrategy:
 
     preprocess: str | None = None
     capture: str = ""
+    format: str = "png"
+    """Output format: ``"png"``, ``"jpeg"``/``"jpg"``, ``"webp"``, ``"svg"``."""
 
 
 # ---------------------------------------------------------------------------
@@ -144,11 +146,15 @@ _HTML2CANVAS_CAPTURE = """\
                     useCORS: true,
                     logging: false
                 });
-                return canvas.toDataURL('image/png');"""
+                const fmt = opts.format || 'png';
+                const mime = fmt === 'jpg' ? 'image/jpeg' : 'image/' + fmt;
+                return canvas.toDataURL(mime, opts.quality || undefined);"""
 
 _CANVAS_CAPTURE = """\
                 const cvs = el.querySelector('canvas') || el;
-                return cvs.toDataURL('image/png');"""
+                const fmt = opts.format || 'png';
+                const mime = fmt === 'jpg' ? 'image/jpeg' : 'image/' + fmt;
+                return cvs.toDataURL(mime, opts.quality || undefined);"""
 
 
 # ---------------------------------------------------------------------------
@@ -163,6 +169,7 @@ def plotly_strategy(
     strip_axis_titles: bool = False,
     strip_colorbar: bool = False,
     strip_margin: bool = False,
+    format: str = "png",
     _params: dict | None = None,
 ) -> CaptureStrategy:
     """Plotly.toImage() strategy with optional strip patches.
@@ -172,6 +179,8 @@ def plotly_strategy(
     strip_title, strip_legend, strip_annotations, strip_axis_titles,
     strip_colorbar, strip_margin :
         Remove the corresponding element from the figure before capture.
+    format :
+        Output format: ``"png"``, ``"jpeg"``, ``"webp"``, ``"svg"``.
     """
     patches = _build_strip_patches(
         strip_title, strip_legend, strip_annotations,
@@ -179,17 +188,29 @@ def plotly_strategy(
     )
     preprocess = _build_plotly_preprocess(patches, _params or {})
     capture = _PLOTLY_CAPTURE if preprocess else _PLOTLY_CAPTURE_SIMPLE
-    return CaptureStrategy(preprocess=preprocess, capture=capture)
+    return CaptureStrategy(preprocess=preprocess, capture=capture, format=format)
 
 
-def html2canvas_strategy() -> CaptureStrategy:
-    """html2canvas strategy for capturing arbitrary DOM elements."""
-    return CaptureStrategy(capture=_HTML2CANVAS_CAPTURE)
+def html2canvas_strategy(format: str = "png") -> CaptureStrategy:
+    """html2canvas strategy for capturing arbitrary DOM elements.
+
+    Parameters
+    ----------
+    format :
+        Output format: ``"png"``, ``"jpeg"``/``"jpg"``.
+    """
+    return CaptureStrategy(capture=_HTML2CANVAS_CAPTURE, format=format)
 
 
-def canvas_strategy() -> CaptureStrategy:
-    """Raw canvas.toDataURL() strategy for canvas-based components."""
-    return CaptureStrategy(capture=_CANVAS_CAPTURE)
+def canvas_strategy(format: str = "png") -> CaptureStrategy:
+    """Raw canvas.toDataURL() strategy for canvas-based components.
+
+    Parameters
+    ----------
+    format :
+        Output format: ``"png"``, ``"jpeg"``/``"jpg"``.
+    """
+    return CaptureStrategy(capture=_CANVAS_CAPTURE, format=format)
 
 
 # ---------------------------------------------------------------------------
@@ -237,7 +258,7 @@ def build_capture_js(
                 if (!el) return window.dash_clientside.no_update;
                 const graphDiv =
                     el.querySelector('.js-plotly-plot') || el;
-                const opts = {{format: 'png'}};
+                const opts = {{format: '{strategy.format}'}};
                 {js_build_opts}
         """
 
