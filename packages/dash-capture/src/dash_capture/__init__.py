@@ -10,20 +10,38 @@ except PackageNotFoundError:
     __version__ = "unknown"
 
 
-from dash_fn_forms import Field, FieldHook, FromComponent
-from dash_capture._ids import id_generator
-from dash_capture.dropdown import build_dropdown
-from dash_capture.fig_export import FromPlotly, graph_exporter
-from dash_capture.wizard import Wizard, build_wizard
+from dash_capture.capture import (
+    CaptureBinding,
+    FromPlotly,
+    capture_binding,
+    capture_element,
+    capture_graph,
+    # backwards compat aliases
+    component_exporter,
+    graph_exporter,
+)
+from dash_capture.strategies import (
+    CaptureStrategy,
+    canvas_strategy,
+    html2canvas_strategy,
+    plotly_strategy,
+)
 
 __all__ = [
-    "Field",
-    "FieldHook",
-    "FromComponent",
+    # low-level
+    "CaptureBinding",
+    "capture_binding",
+    # high-level (wizard)
+    "capture_graph",
+    "capture_element",
+    # strategies
+    "CaptureStrategy",
+    "plotly_strategy",
+    "html2canvas_strategy",
+    "canvas_strategy",
+    # hooks
     "FromPlotly",
-    "Wizard",
-    "build_dropdown",
-    "build_wizard",
+    # backwards compat
     "graph_exporter",
-    "id_generator",
+    "component_exporter",
 ]
