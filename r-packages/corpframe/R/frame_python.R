@@ -50,9 +50,9 @@ find_python <- function(python = NULL) {
   python <- find_python(python)
 
   # Path to the bundled Python script
-  script <- system.file("python", "corporate_frame.py", package = "shinycorpframe")
+  script <- system.file("python", "corporate_frame.py", package = "corpframe")
   if (!nzchar(script)) {
-    stop("corporate_frame.py not found in shinycorpframe package")
+    stop("corporate_frame.py not found in corpframe package")
   }
 
   # Write input to temp file, call Python, read output
@@ -62,18 +62,18 @@ find_python <- function(python = NULL) {
 
   writeBin(png_bytes, input_file)
 
-  args <- c(
-    script,
-    "--input", input_file,
-    "--output", output_file,
-    "--title", title,
-    "--subtitle", subtitle,
-    "--footnotes", footnotes,
-    "--sources", sources,
+  cmd <- paste(
+    shQuote(python), shQuote(script),
+    "--input", shQuote(input_file),
+    "--output", shQuote(output_file),
+    "--title", shQuote(title),
+    "--subtitle", shQuote(subtitle),
+    "--footnotes", shQuote(footnotes),
+    "--sources", shQuote(sources),
     "--dpi", as.character(dpi)
   )
 
-  result <- system2(python, args, stdout = TRUE, stderr = TRUE)
+  result <- system(cmd, intern = TRUE)
   status <- attr(result, "status")
 
   if (!is.null(status) && status != 0) {
@@ -89,4 +89,31 @@ find_python <- function(python = NULL) {
   }
 
   readBin(output_file, "raw", file.info(output_file)$size)
+}
+
+
+#' Apply corporate frame to PNG bytes
+#'
+#' Takes raw PNG bytes, calls Python/matplotlib to add a corporate header
+#' (title, subtitle) and footer (footnotes, sources), returns framed PNG bytes.
+#'
+#' @inheritParams .apply_frame
+#' @return Raw vector of the framed PNG image.
+#' @export
+apply_frame <- function(png_bytes,
+                        title = "",
+                        subtitle = "",
+                        footnotes = "",
+                        sources = "",
+                        dpi = 300L,
+                        python = NULL) {
+  .apply_frame(
+    png_bytes,
+    title = title,
+    subtitle = subtitle,
+    footnotes = footnotes,
+    sources = sources,
+    dpi = dpi,
+    python = python
+  )
 }

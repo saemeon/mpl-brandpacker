@@ -1,5 +1,5 @@
-# ggcorpframe demo — run with:
-#   cd r-packages/ggcorpframe
+# corpframe demo — run with:
+#   cd r-packages/corpframe
 #   /usr/local/bin/Rscript examples/gg_demo.R
 
 library(ggplot2)
