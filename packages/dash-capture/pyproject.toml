@@ -48,4 +48,4 @@ version = { attr = "dash_capture._version.__version__" }
 where = ["src"]
 
 [tool.setuptools.package-data]
-dash_capture = ["py.typed"]
+dash_capture = ["py.typed", "assets/*.js"]

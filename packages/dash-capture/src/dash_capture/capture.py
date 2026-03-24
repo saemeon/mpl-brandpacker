@@ -28,6 +28,7 @@ from dash_capture._ids import id_generator
 from dash_capture.dropdown import build_dropdown
 from dash_capture.strategies import (
     CaptureStrategy,
+    _HTML2CANVAS_CAPTURE,
     build_capture_js,
     html2canvas_strategy,
     plotly_strategy,
@@ -278,7 +279,7 @@ def capture_batch(
 
 def _build_modal_body(
     config_div, generate_id, download_id, preview_id, copy_id,
-    error_id, interval_id, snapshot_store_id, has_fields,
+    error_id, interval_id, snapshot_store_id, format_id, has_fields,
     styles, class_names,
 ) -> html.Div:
     # Always include Generate button in DOM (callbacks reference it),
@@ -286,6 +287,28 @@ def _build_modal_body(
     gen_style = dict(styles.get("button") or {})
     if not has_fields:
         gen_style["display"] = "none"
+
+    format_selector = html.Div(
+        style={"display": "flex", "alignItems": "center", "gap": "6px"},
+        children=[
+            html.Label("Format:", style={"fontSize": "12px", "color": "#888"}),
+            dcc.Dropdown(
+                id=format_id,
+                options=[
+                    {"label": "PNG", "value": "png"},
+                    {"label": "JPEG", "value": "jpeg"},
+                    {"label": "WebP", "value": "webp"},
+                    {"label": "SVG", "value": "svg"},
+                ],
+                value="png",
+                clearable=False,
+                style={"width": "100px", "fontSize": "12px"},
+                persistence=True,
+                persistence_type="session",
+            ),
+        ],
+    )
+
     action_buttons = [
         html.Button(
             "Generate", id=generate_id,
@@ -318,7 +341,7 @@ def _build_modal_body(
                     "display": "flex", "flexDirection": "column",
                     "gap": "8px", "minWidth": "160px",
                 },
-                children=[config_div, *action_buttons],
+                children=[config_div, format_selector, *action_buttons],
             ),
             html.Div(
                 style={"position": "relative", "width": "400px", "minHeight": "200px"},
@@ -372,6 +395,7 @@ def _wire_wizard(
     menu_id = ids["menu"]
     autogenerate_id = ids["autogen"]
     snapshot_store_id = ids["snapshot"]
+    format_id = ids["format"]
     has_fields = bool(config.states)
 
     menu = build_dropdown(
@@ -400,7 +424,7 @@ def _wire_wizard(
 
     body = _build_modal_body(
         config, generate_id, download_id, preview_id, copy_id,
-        error_id, interval_id, snapshot_store_id, has_fields,
+        error_id, interval_id, snapshot_store_id, format_id, has_fields,
         styles, class_names,
     )
 
@@ -441,6 +465,7 @@ def _wire_wizard(
             Output(snapshot_store_id, "data"),
             Input(generate_id, "n_clicks"),
             Input(interval_id, "n_intervals"),
+            State(format_id, "value"),
             *_capture_states,
             prevent_initial_call=True,
         )
@@ -527,21 +552,28 @@ def _wire_wizard(
         Output(download_id, "data"),
         Input(f"{download_id}_btn", "n_clicks"),
         State(snapshot_store_id, "data"),
+        State(format_id, "value"),
         *_fig_states_dl,
         *config.states,
         prevent_initial_call=True,
     )
-    def download_figure(n_clicks, _img_b64, *args):
+    def download_figure(n_clicks, _img_b64, fmt, *args):
         if has_fig_data:
             _fig_data, *field_values = args
         else:
             _fig_data, field_values = {}, args
         kwargs = config.build_kwargs(tuple(field_values))
+        # Adjust filename extension to match selected format
+        dl_name = filename
+        if fmt and fmt != "png":
+            stem = filename.rsplit(".", 1)[0] if "." in filename else filename
+            ext = "jpg" if fmt == "jpeg" else fmt
+            dl_name = f"{stem}.{ext}"
         return dcc.send_bytes(
             _call_renderer(
                 renderer, has_fig_data, has_snapshot, _fig_data, _img_b64 or "", kwargs
             ),
-            filename,
+            dl_name,
         )
 
     # --- copy to clipboard (clientside) ---
@@ -611,7 +643,7 @@ def _make_wizard(
     uid = id_generator(element_id)
     ids = {k: f"_dcap_{k}_{uid}" for k in (
         "cfg", "wiz", "preview", "generate", "download", "copy",
-        "error", "interval", "restore", "menu", "autogen", "snapshot",
+        "error", "interval", "restore", "menu", "autogen", "snapshot", "format",
     )}
 
     config = FnForm(
@@ -648,7 +680,7 @@ def capture_graph(
     strategy: CaptureStrategy | None = None,
     preprocess: str | None = None,
     filename: str = "figure.png",
-    autogenerate: bool = False,
+    autogenerate: bool = True,
     persist: bool = True,
     styles: dict | None = None,
     class_names: dict | None = None,
@@ -715,7 +747,7 @@ def capture_element(
     strategy: CaptureStrategy | None = None,
     preprocess: str | None = None,
     filename: str = "capture.png",
-    autogenerate: bool = False,
+    autogenerate: bool = True,
     persist: bool = True,
     styles: dict | None = None,
     class_names: dict | None = None,
@@ -747,10 +779,17 @@ def capture_element(
     if strategy is None:
         strategy = html2canvas_strategy()
 
-    return _make_wizard(
+    wizard = _make_wizard(
         comp_id, renderer, strategy, preprocess, trigger, filename,
         autogenerate, persist, styles, class_names, field_specs, field_components,
     )
+
+    # Auto-include vendored html2canvas.min.js if using html2canvas strategy
+    if getattr(strategy, "capture", "") == _HTML2CANVAS_CAPTURE:
+        from dash_capture._html2canvas import ensure_html2canvas
+        return html.Div(ensure_html2canvas([wizard]))
+
+    return wizard
 
 
 # Backwards compatibility aliases

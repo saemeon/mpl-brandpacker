@@ -238,7 +238,7 @@ def build_capture_js(
     params :
         The renderer's ``inspect.signature().parameters`` dict.
     """
-    js_args = ", ".join(["n_clicks", "n_intervals", *active_capture])
+    js_args = ", ".join(["n_clicks", "n_intervals", "fmt", *active_capture])
     js_build_opts = "\n                ".join(
         f"if ({p} != null) opts.{p[len('capture_'):]} = {p};"
         for p in active_capture
@@ -258,7 +258,7 @@ def build_capture_js(
                 if (!el) return window.dash_clientside.no_update;
                 const graphDiv =
                     el.querySelector('.js-plotly-plot') || el;
-                const opts = {{format: '{strategy.format}'}};
+                const opts = {{format: fmt || '{strategy.format}'}};
                 {js_build_opts}
         """
 
