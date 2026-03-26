@@ -9,7 +9,7 @@
   python <- .find_python(python)
 
   cmd <- paste(
-    shQuote(python), "-m", "corpframe",
+    shQuote(python), "-m", "corpplt",
     "--query-plot-area",
     "--target-width", as.character(width),
     "--target-height", as.character(height),
@@ -52,7 +52,7 @@
   writeBin(png_bytes, input_file)
 
   cmd <- paste(
-    shQuote(python), "-m", "corpframe",
+    shQuote(python), "-m", "corpplt",
     "--input", shQuote(input_file),
     "--output", shQuote(output_file),
     "--title", shQuote(title),
