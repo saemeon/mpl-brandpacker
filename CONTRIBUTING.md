@@ -1,12 +1,12 @@
 # Contributing
 
-Bug reports, feature requests, and pull requests are welcome on [GitHub](https://github.com/saemeon/mypackage/issues).
+Bug reports, feature requests, and pull requests are welcome on [GitHub](https://github.com/saemeon/mpl-brandpacker/issues).
 
 ## Development setup
 
 ```bash
-git clone https://github.com/saemeon/mypackage
-cd mypackage
+git clone https://github.com/saemeon/mpl-brandpacker
+cd mpl-brandpacker
 uv sync --group dev
 ```
 
