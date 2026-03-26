@@ -230,12 +230,12 @@ class TestBuildCaptureJs:
     def test_format_in_opts(self):
         s = plotly_strategy(format="svg")
         js = build_capture_js("g", s, [], {})
-        assert "format: 'svg'" in js
+        assert "fmt || 'svg'" in js
 
     def test_format_jpeg_in_opts(self):
         s = html2canvas_strategy(format="jpeg")
         js = build_capture_js("g", s, [], {})
-        assert "format: 'jpeg'" in js
+        assert "fmt || 'jpeg'" in js
 
     def test_element_id_escaping(self):
         s = plotly_strategy()
