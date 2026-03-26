@@ -1,5 +1,5 @@
-import dash_fn_forms
+import mpl_brandpacker
 
 
 def test_import():
-    assert dash_fn_forms
+    assert mpl_brandpacker
