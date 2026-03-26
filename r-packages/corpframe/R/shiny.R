@@ -32,7 +32,7 @@
 
   raw_rv(raw_bytes)
 
-  framed <- apply_frame(
+  framed <- .apply_frame(
     raw_bytes,
     title = title, subtitle = subtitle,
     footnotes = footnotes, sources = sources,
@@ -41,7 +41,7 @@
   framed_rv(framed)
 
   .reframe <- function() {
-    apply_frame(
+    .apply_frame(
       raw_rv(),
       title = input[[title_id]] %||% title,
       subtitle = input[[subtitle_id]] %||% subtitle,

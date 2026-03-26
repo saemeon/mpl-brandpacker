@@ -6,8 +6,22 @@
   tmp_in <- tempfile(fileext = ".png")
   on.exit(unlink(tmp_in), add = TRUE)
 
-  width <- params$width %||% 8
-  height <- params$height %||% 5
+  # Figsize priority: corporate_frame(figsize=) > ggsave(width=,height=) > default
+  figsize <- params$figsize
+  if (!is.null(figsize)) {
+    if (is.character(figsize)) figsize <- figsizes[[figsize]]
+    width <- figsize[1]
+    height <- figsize[2]
+  } else {
+    dev_size <- grDevices::dev.size("in")
+    if (dev_size[1] > 1 && dev_size[2] > 1) {
+      width <- dev_size[1]
+      height <- dev_size[2]
+    } else {
+      width <- 8
+      height <- 5
+    }
+  }
   dpi <- params$dpi %||% 300L
 
   ggplot2::ggsave(tmp_in, plot = plot, width = width, height = height,
@@ -15,7 +29,7 @@
 
   png_bytes <- readBin(tmp_in, "raw", file.info(tmp_in)$size)
 
-  framed <- apply_frame(
+  framed <- .apply_frame(
     png_bytes,
     title = params$title %||% "",
     subtitle = params$subtitle %||% "",
@@ -57,15 +71,29 @@
 #' \code{ggsave()}, and RStudio display.
 #'
 #' Title and subtitle are taken from \code{labs()} by default. If set in
-#' both \code{labs()} and \code{corporate_frame()}, both render (with a warning).
+#' both \code{labs()} and \code{corporate_frame()}, both render (with a
+#' warning).
+#'
+#' @section Python configuration:
+#' The frame is rendered by a Python subprocess. Python is found in this
+#' order:
+#' \enumerate{
+#'   \item \code{python} argument
+#'   \item \code{options(corpframe.python = "/path/to/python")}
+#'   \item \code{CORPFRAME_PYTHON} environment variable
+#'   \item reticulate's Python (if installed)
+#'   \item Common system paths
+#' }
 #'
 #' @param title Header title (NULL = use \code{labs(title)}).
 #' @param subtitle Header subtitle (NULL = use \code{labs(subtitle)}).
 #' @param footnotes Footer text, left-aligned.
 #' @param sources Footer text, right-aligned.
-#' @param width Plot width in inches.
-#' @param height Plot height in inches.
-#' @param dpi Resolution in DPI.
+#' @param figsize Target layout size. Either a name from \code{\link{figsizes}}
+#'   (e.g. \code{"publication_half"}) or a \code{c(width, height)} vector in
+#'   inches. If NULL, uses the device dimensions (e.g. from \code{ggsave} or
+#'   the RStudio pane).
+#' @param dpi Resolution in DPI (default 300).
 #' @param python Path to Python (NULL for auto-detect).
 #' @return Object to add to a ggplot with \code{+}.
 #'
@@ -78,28 +106,30 @@
 #'   labs(title = "Weight vs MPG") +
 #'   corporate_frame()
 #'
-#' # Title set directly:
+#' # Named figsize for a specific layout:
 #' ggplot(mtcars, aes(wt, mpg)) + geom_point() +
-#'   corporate_frame(title = "Weight vs MPG")
+#'   corporate_frame(title = "Weight vs MPG",
+#'                   figsize = "publication_half")
 #'
-#' # Save to file:
+#' # ggsave dimensions are respected when figsize is not set:
 #' p <- ggplot(mtcars, aes(wt, mpg)) + geom_point() +
 #'   corporate_frame(title = "Weight vs MPG")
-#' ggsave("chart.png", p)
+#' ggsave("chart.png", p, width = 10, height = 6)
 #' }
 #' @export
 corporate_frame <- function(title = NULL,
                             subtitle = NULL,
                             footnotes = "",
                             sources = "",
-                            width = 8,
-                            height = 5,
+                            figsize = NULL,
                             dpi = 300L,
                             python = NULL) {
+  if (is.character(figsize) && !figsize %in% names(figsizes)) {
+    stop("Unknown figsize '", figsize, "'. See names(figsizes) for options.")
+  }
   structure(
     list(title = title, subtitle = subtitle, footnotes = footnotes,
-         sources = sources, width = width, height = height,
-         dpi = dpi, python = python),
+         sources = sources, figsize = figsize, dpi = dpi, python = python),
     class = "corporate_frame_params"
   )
 }

@@ -1,35 +1,15 @@
 # Copyright (c) Simon Niederberger.
 # Distributed under the terms of the MIT License.
 
-#' Apply corporate frame to PNG bytes
-#'
-#' Wraps a PNG image with a corporate header (title, subtitle) and footer
-#' (footnotes, sources) via the Python corpframe CLI. Returns framed PNG bytes.
-#'
-#' @param png_bytes Raw vector of PNG image data.
-#' @param title Header title.
-#' @param subtitle Header subtitle.
-#' @param footnotes Footer text, left-aligned.
-#' @param sources Footer text, right-aligned.
-#' @param dpi Output resolution (default 300).
-#' @param python Path to Python (NULL for auto-detect via \code{\link{find_python}}).
-#' @return Raw vector of the framed PNG.
-#'
-#' @examples
-#' \dontrun{
-#' png_bytes <- readBin("chart.png", "raw", file.info("chart.png")$size)
-#' framed <- apply_frame(png_bytes, title = "Q4 Revenue")
-#' writeBin(framed, "chart_framed.png")
-#' }
-#' @export
-apply_frame <- function(png_bytes,
-                        title = "",
-                        subtitle = "",
-                        footnotes = "",
-                        sources = "",
-                        dpi = 300L,
-                        python = NULL) {
-  python <- find_python(python)
+#' @keywords internal
+.apply_frame <- function(png_bytes,
+                         title = "",
+                         subtitle = "",
+                         footnotes = "",
+                         sources = "",
+                         dpi = 300L,
+                         python = NULL) {
+  python <- .find_python(python)
 
   input_file <- tempfile(fileext = ".png")
   output_file <- tempfile(fileext = ".png")

@@ -14,8 +14,8 @@
 #'
 #' @param python Explicit path, or NULL for auto-detection.
 #' @return Path to the Python executable.
-#' @export
-find_python <- function(python = NULL) {
+#' @keywords internal
+.find_python <- function(python = NULL) {
   if (!is.null(python)) {
     if (!file.exists(python)) stop("Python not found at: ", python)
     return(python)
