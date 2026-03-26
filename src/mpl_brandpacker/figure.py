@@ -25,11 +25,12 @@ from __future__ import annotations
 from collections.abc import Callable
 
 import numpy as np
+from matplotlib.figure import Figure
 
 from mpl_brandpacker.patcher import MethodProxy, patch_method
 
 
-class BrandFigure:
+class BrandFigure(Figure):
     """Base class for brand Figure implementations.
 
     Subclass this and define your brand's figure-level methods.
@@ -61,6 +62,7 @@ class BrandFigure:
     """
 
     _brand_methods: list[str] = []
+    mpl: Figure  # MethodProxy at runtime, typed as Figure for IDE
 
 
 def patch_figure(
@@ -103,7 +105,7 @@ def patch_figure(
     setattr(fig, marker_attr, True)
     setattr(fig, proxy_attr, MethodProxy(fig, Figure))
 
-    for name in (methods or getattr(brand_cls, "_brand_methods", [])):
+    for name in methods or getattr(brand_cls, "_brand_methods", []):
         patch_method(fig, brand_cls, name)
 
     if extra_patches:

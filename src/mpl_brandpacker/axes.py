@@ -23,10 +23,12 @@ from __future__ import annotations
 
 import functools
 
+from matplotlib.axes import Axes
+
 from mpl_brandpacker.patcher import MethodProxy, patch_method
 
 
-class BrandAxes:
+class BrandAxes(Axes):
     """Base class for brand Axes implementations.
 
     Subclass this and define your brand's axes-level methods.
@@ -64,6 +66,7 @@ class BrandAxes:
     """
 
     _brand_methods: list[str] = []
+    mpl: Axes  # MethodProxy at runtime, typed as Axes for IDE
 
 
 def patch_axes(

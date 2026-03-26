@@ -41,16 +41,21 @@ Quick start
         pandas=True,                      # optional: also hook df.plot()
     )
 
-3. **Re-export** pyplot as your brand's module::
+3. **Re-export** pyplot and add brand shortcuts::
 
     # my_brand/pyplot.py
     from mpl_brandpacker.pyplot import *  # noqa
+    from mpl_brandpacker.pyplot import gcf
+
+    def title(t, **kw):    gcf().set_title(t, **kw)
+    def sources(s, **kw):  gcf().set_sources(s, **kw)
 
 4. **Users** just import your package::
 
     import my_brand.pyplot as plt
     fig, ax = plt.subplots()   # automatically branded
     fig.set_title("Q4 Revenue")
+    plt.sources("Bloomberg")   # pyplot-level brand shortcut
     fig.mpl.legend()           # access original matplotlib methods via .mpl
 
 Submodules (advanced)
@@ -60,6 +65,7 @@ Submodules (advanced)
 - ``mpl_brandpacker.pandas`` — ``use_for_pandas()`` for manual df.plot() opt-in
 - ``mpl_brandpacker.patcher`` — low-level ``patch_method()``, ``MethodProxy``
 - ``mpl_brandpacker.style`` — ``register_stylesheet()``
+- ``mpl_brandpacker.sizes`` — ``MM_TO_INCH``, ``POINTS_TO_INCH``
 - ``mpl_brandpacker.utils`` — ``get_text_bbox()``, ``separate_kwargs()``
 """
 

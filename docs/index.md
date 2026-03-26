@@ -1,226 +1,150 @@
-# dash-interact
+# mpl-brandpacker
 
-Build interactive Plotly Dash apps from type-hinted Python functions — pyplot-style, no boilerplate.
+Package your brand design into a `matplotlib.pyplot` drop-in replacement. Define titles, headers styling, colors, and axes styling as Python classes — mpl-brandpacker handles the patching so `your_brand.pyplot.subplots()` returns fully branded figures and axes.
 
-## Installation
+## Install
 
 ```bash
-pip install dash-interact
+pip install mpl-brandpacker
 ```
 
-## Quickstart
+## Quick start
+
+### 1. Define your brand
 
 ```python
-from dash_interact import page
+# my_brand/colors.py
+import mpl_brandpacker as mbp
 
-page.H1("My App")
+class Colors(mbp.ColorsBase):
+    primary = "#1a5276"
+    accent = "#e67e22"
+    dark = "#2c3e50"
 
-@page.interact
-def sine_wave(amplitude: float = 1.0, frequency: float = 2.0, n_cycles: int = 3):
-    import numpy as np, plotly.graph_objects as go
-    x = np.linspace(0, n_cycles * 2 * np.pi, 600)
-    return go.Figure(go.Scatter(x=x, y=amplitude * np.sin(frequency * x)))
-
-page.run(debug=True)
+Colors.plot()  # → swatch grid for documentation
 ```
 
-`@page.interact` inspects the function signature and builds the form. The return value is rendered automatically.
-
-## Type mapping
-
-| Python type | Control |
-|---|---|
-| `float` | Number input (or slider with `(min, max, step)`) |
-| `int` | Number input (integer step) |
-| `bool` | Checkbox |
-| `Literal[A, B, C]` | Dropdown |
-| `str` | Text input |
-| `date` / `datetime` | Date picker |
-| `list[T]` / `tuple[T, ...]` | Comma-separated text input |
-| `T \| None` | Same as `T`, submits `None` when empty |
-
-## The page API
-
-`page` works like `matplotlib.pyplot` — a module-level singleton that accumulates content as you go.
-
 ```python
-from dash_interact import page
+# my_brand/sizes.py
+from mpl_brandpacker.sizes import MM_TO_INCH
 
-page.H1("Title")          # adds html.H1 to the current page
-page.Hr()                 # adds html.Hr
-@page.interact            # adds an interact panel
-def my_fn(...): ...
-page.run()                # builds the Dash app and starts the server
-page.current()            # returns the Page instance (for embedding)
+class Sizes(mbp.FigsizesBase):
+    half = (88 * MM_TO_INCH, 76 * MM_TO_INCH)
+    full = (181 * MM_TO_INCH, 76 * MM_TO_INCH)
+
+class FontSizes(mbp.SizesBase):
+    title = 10
+    body = 8
+    footer = 6.5
+
+    _scalers = {"presentation": 2.0}
 ```
 
-Any `html.*` element is available as `page.<TagName>(...)`.
-
-## Explicit Page object
-
 ```python
-from dash_interact import Page
-from dash import Dash, html
+# my_brand/figure.py
+class MyFigure(mbp.BrandFigure):
+    _brand_methods = ["set_title", "set_sources"]
 
-p = Page(max_width=1200, manual=True)
-p.H1("My App")
+    def set_title(self, title, **kw):
+        self.mpl.suptitle(title, fontsize=10, weight="bold", x=0.02, ha="left", **kw)
 
-@p.interact
-def my_fn(...): ...
-
-app = Dash(__name__)
-app.layout = html.Div([navbar, p, footer])
-app.run()
+    def set_sources(self, sources, **kw):
+        self.text(0.02, 0.02, f"Source: {sources}", fontsize=6.5,
+                  color="#888", transform=self.transFigure, **kw)
 ```
 
-`Page` is a subclass of `html.Div` — use it anywhere a Dash component is accepted.
-
-## The interact family
-
-Three levels mirroring ipywidgets:
-
 ```python
-from dash_interact import interact, interactive, interactive_output
-from dash_fn_forms import FnForm
+# my_brand/axes.py
+class MyAxes(mbp.BrandAxes):
+    _brand_methods = ["set_xlabel", "set_ylabel"]
 
-# 1. Fire and forget — attaches to the current page
-@interact
-def plot(amplitude: float = 1.0): ...
+    def set_xlabel(self, label, **kw):
+        self.mpl.set_xlabel(label, fontsize=8, **kw)
 
-# 2. Embeddable — place it yourself, split via .form / .output
-panel = interactive(plot, amplitude=(0, 2, 0.1))
-app.layout = html.Div([
-    html.Div([panel.form], className="sidebar"),
-    html.Div([panel.output], className="main"),
-])
+    def set_ylabel(self, label, **kw):
+        self.mpl.set_ylabel(label, fontsize=8, rotation="horizontal", **kw)
 
-# 3. Fully decoupled — pre-built form, separate output area
-form = FnForm("plot", plot)
-output = interactive_output(plot, form)
-app.layout = html.Div([
-    html.Div([form], className="sidebar"),
-    html.Div([output], className="main"),
-])
+def set_style(ax, **kw):
+    ax.grid(True, alpha=0.2)
+    for spine in ("top", "right"):
+        ax.spines[spine].set_visible(False)
 ```
 
-## Field customization
+### 2. Configure
 
 ```python
-from dash_fn_forms import Field
+# my_brand/__init__.py
+import mpl_brandpacker as mbp
+from pathlib import Path
 
-@page.interact(
-    amplitude=(0.1, 3.0, 0.1),                    # tuple → min/max/step
-    label=Field(label="Title", col_span=2),        # Field → full control
-)
-def my_fn(amplitude: float = 1.0, label: str = "Chart"):
-    ...
-```
-
-`Field` options:
-
-| Option | Description |
-|---|---|
-| `label` | Display label (default: parameter name) |
-| `description` | Help text below the input |
-| `min` / `max` / `step` | Numeric bounds |
-| `col_span` | Column span in a multi-column grid |
-| `component` | Replace the auto-generated Dash component entirely |
-| `hook` | `FieldHook` for runtime-populated defaults |
-
-## Panel options
-
-| Option | Default | Description |
-|---|---|---|
-| `_manual` | `False` | Show an *Apply* button; callback fires on click only |
-| `_loading` | `True` | Wrap the output area in `dcc.Loading` |
-| `_cache` | `False` | Cache results by field values (LRU) |
-| `_cache_maxsize` | `128` | Maximum cached entries |
-| `_render` | `None` | Custom renderer for the return value |
-| `_id` | fn name | Component ID namespace (set when two panels share a function name) |
-
-## Result caching
-
-Pass `_cache=True` to skip re-calling the function when the same field values are submitted again:
-
-```python
-@interact(_cache=True)
-def expensive(n: int = 100):
-    import time; time.sleep(2)
-    return n * n
-```
-
-Uses LRU eviction with `_cache_maxsize=128` (default). Each unique combination of field values counts as one cache entry.
-
-## Custom renderers
-
-Register a renderer once at startup — all `interact()` calls that return that type use it automatically:
-
-```python
-import pandas as pd
-from dash import dash_table
-from dash_fn_forms import register_renderer
-
-register_renderer(
-    pd.DataFrame,
-    lambda df: dash_table.DataTable(
-        data=df.to_dict("records"),
-        columns=[{"name": c, "id": c} for c in df.columns],
-    ),
+mbp.configure(
+    figure_cls=MyFigure,
+    axes_cls=MyAxes,
+    style_fn=set_style,
+    stylesheet=Path(__file__).parent,  # dir with .mplstyle + data/fonts/
+    pandas=True,                        # also hook df.plot()
 )
 ```
 
-Built-in renderers (checked in order):
-
-1. Explicit `_render=` on `interact()`
-2. Global registry (`register_renderer`)
-3. `plotly.graph_objects.Figure` → `dcc.Graph`
-4. Dash component → as-is
-5. `dict` → labelled card grid
-6. `str` → `dcc.Markdown`
-7. `int` / `float` / `bool` → `html.P`
-8. `pandas.DataFrame` → `DataTable`
-9. `matplotlib.figure.Figure` → base64 PNG image
-10. Fallback → `html.Pre(repr(result))`
-
-## Dict return
-
-When a function returns a `dict`, each value is rendered as a labelled card:
+### 3. Re-export pyplot
 
 ```python
-@interact
-def stats(n: int = 100):
-    import numpy as np
-    data = np.random.randn(n)
-    return {
-        "mean": f"{data.mean():.4f}",
-        "std": f"{data.std():.4f}",
-        "min": f"{data.min():.4f}",
-        "max": f"{data.max():.4f}",
-    }
+# my_brand/pyplot.py
+from mpl_brandpacker.pyplot import *  # noqa
+from mpl_brandpacker.pyplot import gcf
+
+# pyplot-level shortcuts for brand methods (like plt.title in matplotlib)
+def title(title, **kw):     gcf().set_title(title, **kw)
+def subtitle(sub, **kw):    gcf().set_subtitle(sub, **kw)
+def sources(src, **kw):     gcf().set_sources(src, **kw)
+def footnote(note, **kw):   gcf().set_footnote(note, **kw)
 ```
 
-Each value is passed through the normal renderer pipeline — keys can map to strings, numbers, figures, DataFrames, or any registered type.
+For IDE autocompletion of brand methods on `fig` and `ax`, add a `pyplot.pyi` stub file — see the [template](https://github.com/saemeon/mpl-brandpacker/tree/main/template) for a complete example.
+
+### 4. Use it
+
+```python
+import my_brand.pyplot as plt
+
+fig, ax = plt.subplots()
+ax.plot([1, 2, 3], [4, 5, 6])
+ax.set_xlabel("Quarter")
+
+plt.title("Revenue")
+plt.sources("Bloomberg")
+plt.show()
+```
+
+Everything is branded. Original matplotlib methods are accessible via `.mpl`:
+
+```python
+fig.mpl.legend()       # original Figure.legend
+ax.mpl.set_xlabel()    # original Axes.set_xlabel
+```
 
 ## API Reference
 
-### interact family
+### configure
 
-::: dash_interact.interact.interact
+::: mpl_brandpacker.configure
 
-::: dash_interact.interact.interactive
+### BrandFigure
 
-::: dash_interact.interact.interactive_output
+::: mpl_brandpacker.figure.BrandFigure
 
-### page
+### BrandAxes
 
-::: dash_interact.page.current
+::: mpl_brandpacker.axes.BrandAxes
 
-::: dash_interact.page.interact
+### ColorsBase
 
-::: dash_interact.page.add
+::: mpl_brandpacker.colors.ColorsBase
 
-::: dash_interact.page.run
+### FigsizesBase
 
-### Page
+::: mpl_brandpacker.sizes.FigsizesBase
 
-::: dash_interact.page.Page
+### SizesBase
+
+::: mpl_brandpacker.sizes.SizesBase

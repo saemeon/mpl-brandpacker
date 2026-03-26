@@ -14,6 +14,23 @@ Usage::
 
     import mpl_brandpacker.pyplot as plt
     fig, ax = plt.subplots()  # both branded
+
+Extending pyplot
+-----------------
+
+Your brand's ``pyplot.py`` can add pyplot-level shortcuts for brand methods,
+mirroring matplotlib's ``plt.title()`` pattern::
+
+    # my_brand/pyplot.py
+    from mpl_brandpacker.pyplot import *  # noqa
+    from mpl_brandpacker.pyplot import gcf
+
+    def title(title, **kw):     gcf().set_title(title, **kw)
+    def subtitle(sub, **kw):    gcf().set_subtitle(sub, **kw)
+    def sources(src, **kw):     gcf().set_sources(src, **kw)
+    def footnote(note, **kw):   gcf().set_footnote(note, **kw)
+
+See the template package for a complete example.
 """
 
 from __future__ import annotations
