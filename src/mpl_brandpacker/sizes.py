@@ -31,7 +31,6 @@ Example::
 from __future__ import annotations
 
 import contextlib
-from typing import Any
 
 import matplotlib.pyplot as plt
 
@@ -88,7 +87,7 @@ class FigsizesBase(tuple, PrintableEnum):
         ax.axis("off")
 
         y = 0
-        for name, (w, h) in zip(names, sizes):
+        for name, (w, h) in zip(names, sizes, strict=False):
             sw, sh = w * 0.25, h * 0.25
             rect = patches.Rectangle(
                 (0.1, y),

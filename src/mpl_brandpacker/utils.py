@@ -37,7 +37,7 @@ class PrintableEnumMeta(EnumMeta):
             raise KeyError(
                 f"'{item}' is not a member of {cls.__name__}. "
                 f"Available: {', '.join(cls.__members__.keys())}"
-            )
+            ) from None
 
 
 class PrintableEnum(Enum, metaclass=PrintableEnumMeta):

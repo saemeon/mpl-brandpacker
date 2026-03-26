@@ -1,14 +1,15 @@
 """Tests for mpl_brandpacker.utils."""
 
 import matplotlib
+
 matplotlib.use("Agg")
 
 from mpl_brandpacker.utils import (
     PrintableEnum,
-    get_text_bbox,
-    separate_kwargs,
     available_kw,
     filter_kw,
+    get_text_bbox,
+    separate_kwargs,
 )
 
 

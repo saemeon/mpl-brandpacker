@@ -18,7 +18,6 @@ import argparse
 import shutil
 from pathlib import Path
 
-
 TEMPLATE_DIR = Path(__file__).parent.parent.parent / "template"
 
 def create_brand(
@@ -88,10 +87,8 @@ def create_brand(
     for path in output_dir.rglob("*"):
         if not path.is_file():
             continue
-        if path.suffix not in (".py", ".toml", ".md", ".mplstyle", ""):
-            # Also handle LICENSE (no extension)
-            if path.name != "LICENSE":
-                continue
+        if path.suffix not in (".py", ".toml", ".md", ".mplstyle", "") and path.name != "LICENSE":
+            continue
         text = path.read_text()
         for old, new in replacements.items():
             text = text.replace(old, new)
@@ -120,7 +117,7 @@ def main():
     )
     print(f"Created brand package: {output}/")
     print(f"  cd {output}")
-    print(f"  pip install -e .")
+    print("  pip install -e .")
     print(f"  python -c 'import {name}.pyplot as plt; plt.subplots(); plt.show()'")
 
 

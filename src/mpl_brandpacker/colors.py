@@ -50,8 +50,8 @@ class ColorsBase(str, PrintableEnum):
         columns :
             Number of columns in the grid.
         """
-        import matplotlib.pyplot as plt
         import matplotlib.patches as patches
+        import matplotlib.pyplot as plt
 
         names = list(cls.__members__.keys())
         n = len(names)

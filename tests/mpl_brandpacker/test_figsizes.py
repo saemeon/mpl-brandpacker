@@ -2,7 +2,7 @@
 
 import pytest
 
-from mpl_brandpacker.figsizes import FigsizesBase, MM_TO_INCH
+from mpl_brandpacker.figsizes import MM_TO_INCH, FigsizesBase
 
 
 class TestFigsizesBase:

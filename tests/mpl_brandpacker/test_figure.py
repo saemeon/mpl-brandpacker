@@ -1,10 +1,10 @@
 """Tests for mpl_brandpacker.figure."""
 
 import matplotlib
+
 matplotlib.use("Agg")
 
 import matplotlib.pyplot as plt
-import numpy as np
 
 from mpl_brandpacker.figure import BrandFigure, patch_figure
 
@@ -95,25 +95,25 @@ class TestAxesWrapping:
         return MyFig, make_ax
 
     def test_subplots_auto_patches(self):
-        MyFig, make_ax = self._setup()
+        my_fig, make_ax = self._setup()
         fig = plt.figure()
-        patch_figure(fig, MyFig, make_ax=make_ax)
+        patch_figure(fig, my_fig, make_ax=make_ax)
         axes = fig.subplots(2, 2)
         assert all(getattr(a, "_test_patched", False) for a in axes.flatten())
         plt.close(fig)
 
     def test_add_subplot_auto_patches(self):
-        MyFig, make_ax = self._setup()
+        my_fig, make_ax = self._setup()
         fig = plt.figure()
-        patch_figure(fig, MyFig, make_ax=make_ax)
+        patch_figure(fig, my_fig, make_ax=make_ax)
         ax = fig.add_subplot(111)
         assert ax._test_patched
         plt.close(fig)
 
     def test_add_axes_auto_patches(self):
-        MyFig, make_ax = self._setup()
+        my_fig, make_ax = self._setup()
         fig = plt.figure()
-        patch_figure(fig, MyFig, make_ax=make_ax)
+        patch_figure(fig, my_fig, make_ax=make_ax)
         ax = fig.add_axes([0.1, 0.1, 0.8, 0.8])
         assert ax._test_patched
         plt.close(fig)

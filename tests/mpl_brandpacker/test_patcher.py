@@ -1,10 +1,10 @@
 """Tests for mpl_brandpacker.patcher."""
 
 import matplotlib
+
 matplotlib.use("Agg")
 
 import matplotlib.pyplot as plt
-from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 
 from mpl_brandpacker.patcher import MethodProxy, patch_method

@@ -3,13 +3,14 @@
 import warnings
 
 import matplotlib
+
 matplotlib.use("Agg")
 
 import matplotlib.pyplot as plt
 import pytest
 
 import mpl_brandpacker
-from mpl_brandpacker._config import _make_fig, _make_ax, is_configured
+from mpl_brandpacker._config import is_configured
 from mpl_brandpacker.axes import BrandAxes
 from mpl_brandpacker.figure import BrandFigure
 
