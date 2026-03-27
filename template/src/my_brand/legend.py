@@ -54,7 +54,7 @@ def legend_below(
     **legend_kw :
         Passed to ``ax.legend()`` or ``fig.legend()``.
     """
-    h, l = _collect_handles_labels(target, axes, handles, labels, make_unique)
+    h, lbls = _collect_handles_labels(target, axes, handles, labels, make_unique)
     if not h:
         return None
 
@@ -71,8 +71,8 @@ def legend_below(
     defaults.update(legend_kw)
 
     if isinstance(target, Figure):
-        return target.legend(h, l, **defaults)
-    return target.legend(h, l, **defaults)
+        return target.legend(h, lbls, **defaults)
+    return target.legend(h, lbls, **defaults)
 
 
 def legend_above(
@@ -90,7 +90,7 @@ def legend_above(
 
     Parameters are the same as :func:`legend_below`.
     """
-    h, l = _collect_handles_labels(target, axes, handles, labels, make_unique)
+    h, lbls = _collect_handles_labels(target, axes, handles, labels, make_unique)
     if not h:
         return None
 
@@ -107,8 +107,8 @@ def legend_above(
     defaults.update(legend_kw)
 
     if isinstance(target, Figure):
-        return target.legend(h, l, **defaults)
-    return target.legend(h, l, **defaults)
+        return target.legend(h, lbls, **defaults)
+    return target.legend(h, lbls, **defaults)
 
 
 def _get_transform(target):
@@ -120,22 +120,20 @@ def _get_transform(target):
 def _collect_handles_labels(target, axes, handles, labels, make_unique):
     """Collect handles and labels from target or explicit args."""
     if handles is not None and labels is not None:
-        h, l = list(handles), list(labels)
+        h, lbls = list(handles), list(labels)
     elif isinstance(target, Figure):
         all_axes = axes or target.axes
-        h, l = [], []
+        h, lbls = [], []
         for ax in all_axes:
             ah, al = ax.get_legend_handles_labels()
             h.extend(ah)
-            l.extend(al)
+            lbls.extend(al)
     else:
-        h, l = target.get_legend_handles_labels()
+        h, lbls = target.get_legend_handles_labels()
 
     if make_unique:
-        seen = {}
-        for handle, label in zip(h, l, strict=False):
-            seen[label] = handle
-        l = list(seen.keys())
+        seen = {label: handle for handle, label in zip(h, lbls, strict=False)}
+        lbls = list(seen.keys())
         h = list(seen.values())
 
-    return h, l
+    return h, lbls
