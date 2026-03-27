@@ -54,19 +54,17 @@ class FigsizesBase(tuple, PrintableEnum):
     Call ``MySizes.plot()`` to display a visual comparison.
     """
 
-    def __init_subclass__(cls, **kwargs):
-        super().__init_subclass__(**kwargs)
-        for name, member in cls.__members__.items():
-            val = member.value
-            if (
-                not isinstance(val, tuple)
-                or len(val) != 2
-                or not all(isinstance(v, (int, float)) for v in val)
-            ):
-                raise ValueError(
-                    f"{cls.__name__}.{name} = {val!r} must be a (width, height) "
-                    f"tuple of numbers in inches (e.g. (6.0, 4.0))."
-                )
+    def __new__(cls, value):
+        if (
+            not isinstance(value, tuple)
+            or len(value) != 2
+            or not all(isinstance(v, int | float) for v in value)
+        ):
+            raise ValueError(
+                f"{cls.__name__}: {value!r} must be a (width, height) "
+                f"tuple of numbers in inches (e.g. (6.0, 4.0))."
+            )
+        return tuple.__new__(cls, value)
 
     @classmethod
     def plot(cls, figsize=None):

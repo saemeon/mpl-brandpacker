@@ -19,7 +19,6 @@ Usage::
 from pathlib import Path
 
 import mpl_brandpacker
-
 from my_brand.axes import MyAxes, make_ax, set_style
 from my_brand.colors import Colors
 from my_brand.figure import MyFigure, make_fig

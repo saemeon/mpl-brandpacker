@@ -18,8 +18,20 @@ from my_brand_example.legend import legend_below
 # --- Standard plot ---
 fig, ax = plt.subplots(figsize=my_brand_example.Sizes.half)
 
-ax.plot([1, 2, 3, 4], [2, 5, 3, 8], color=my_brand_example.Colors.primary, linewidth=2, label="Revenue")
-ax.plot([1, 2, 3, 4], [1, 3, 6, 4], color=my_brand_example.Colors.accent, linewidth=2, label="Target")
+ax.plot(
+    [1, 2, 3, 4],
+    [2, 5, 3, 8],
+    color=my_brand_example.Colors.primary,
+    linewidth=2,
+    label="Revenue",
+)
+ax.plot(
+    [1, 2, 3, 4],
+    [1, 3, 6, 4],
+    color=my_brand_example.Colors.accent,
+    linewidth=2,
+    label="Target",
+)
 
 fig.set_title("Quarterly Revenue")
 fig.set_subtitle("All regions, 2026")
@@ -34,7 +46,9 @@ print("Saved: demo_output.png")
 # --- Scaled for presentation ---
 with my_brand_example.FontSizes.scaled("presentation"):
     fig2, ax2 = plt.subplots(figsize=my_brand_example.Sizes.presentation)
-    ax2.plot([1, 2, 3, 4], [2, 5, 3, 8], color=my_brand_example.Colors.primary, linewidth=3)
+    ax2.plot(
+        [1, 2, 3, 4], [2, 5, 3, 8], color=my_brand_example.Colors.primary, linewidth=3
+    )
     fig2.set_title("Quarterly Revenue (Presentation)")
     ax2.set_xlabel("Quarter")
     plt.savefig("demo_presentation.png", dpi=150, bbox_inches="tight")

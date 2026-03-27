@@ -70,6 +70,7 @@ def configure(
     # --- Warn on double-configure ---
     if is_configured():
         import warnings
+
         warnings.warn(
             "mpl_brandpacker.configure() called again — overwriting previous config.",
             stacklevel=2,
@@ -103,8 +104,10 @@ def configure(
 
         _make_ax = _auto_make_ax
     else:
+
         def _passthrough_ax(ax, **kw):
             return ax
+
         _make_ax = _passthrough_ax
 
     _style_fn = style_fn or _make_ax
@@ -121,18 +124,22 @@ def configure(
 
         _make_fig = _auto_make_fig
     else:
+
         def _passthrough_fig(fig):
             return fig
+
         _make_fig = _passthrough_fig
 
     # --- Register stylesheet ---
     if stylesheet is not None:
         from mpl_brandpacker.style import register_stylesheet
+
         register_stylesheet(Path(stylesheet))
 
     # --- Hook pandas ---
     if pandas:
         from mpl_brandpacker.pandas import use_for_pandas
+
         use_for_pandas()
 
 
@@ -140,8 +147,7 @@ def get_make_fig() -> Callable:
     """Return the make_fig hook. Raises if not configured."""
     if _make_fig is None:
         raise RuntimeError(
-            "mpl_brandpacker not configured. "
-            "Call mpl_brandpacker.configure(...) first."
+            "mpl_brandpacker not configured. Call mpl_brandpacker.configure(...) first."
         )
     return _make_fig
 
@@ -150,8 +156,7 @@ def get_make_ax() -> Callable:
     """Return the make_ax hook. Raises if not configured."""
     if _make_ax is None:
         raise RuntimeError(
-            "mpl_brandpacker not configured. "
-            "Call mpl_brandpacker.configure(...) first."
+            "mpl_brandpacker not configured. Call mpl_brandpacker.configure(...) first."
         )
     return _make_ax
 
@@ -160,8 +165,7 @@ def get_style_fn() -> Callable:
     """Return the style_fn hook. Raises if not configured."""
     if _style_fn is None:
         raise RuntimeError(
-            "mpl_brandpacker not configured. "
-            "Call mpl_brandpacker.configure(...) first."
+            "mpl_brandpacker not configured. Call mpl_brandpacker.configure(...) first."
         )
     return _style_fn
 

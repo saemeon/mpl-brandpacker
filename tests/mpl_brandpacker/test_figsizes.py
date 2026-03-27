@@ -15,16 +15,19 @@ class TestFigsizesBase:
 
     def test_rejects_scalar(self):
         with pytest.raises(ValueError, match="must be a .* tuple"):
+
             class S(FigsizesBase):
                 bad = 42
 
     def test_rejects_three_tuple(self):
         with pytest.raises(ValueError, match="must be a .* tuple"):
+
             class S(FigsizesBase):
                 bad = (1, 2, 3)
 
     def test_rejects_string_tuple(self):
         with pytest.raises(ValueError, match="must be a .* tuple"):
+
             class S(FigsizesBase):
                 bad = ("a", "b")
 

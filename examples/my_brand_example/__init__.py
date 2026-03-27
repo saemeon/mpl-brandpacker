@@ -19,11 +19,14 @@ Usage::
 from pathlib import Path
 
 import mpl_brandpacker
-
-from my_brand_example.axes import MyAxes, make_ax, set_style
-from my_brand_example.colors import Colors
-from my_brand_example.figure import MyFigure, make_fig
-from my_brand_example.sizes import FontSizes, Sizes
+from my_brand_example.axes import MyAxes as MyAxes
+from my_brand_example.axes import make_ax as make_ax
+from my_brand_example.axes import set_style as set_style
+from my_brand_example.colors import Colors as Colors
+from my_brand_example.figure import MyFigure as MyFigure
+from my_brand_example.figure import make_fig as make_fig
+from my_brand_example.sizes import FontSizes as FontSizes
+from my_brand_example.sizes import Sizes as Sizes
 
 mpl_brandpacker.configure(
     figure_cls=MyFigure,

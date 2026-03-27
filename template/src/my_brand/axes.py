@@ -2,7 +2,6 @@
 
 from mpl_brandpacker import BrandAxes
 from mpl_brandpacker.axes import patch_axes
-
 from my_brand.colors import Colors
 from my_brand.sizes import FontSizes
 

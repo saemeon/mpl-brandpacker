@@ -32,7 +32,6 @@ from __future__ import annotations
 
 from typing import Any
 
-import matplotlib.pyplot as plt
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 
@@ -48,7 +47,7 @@ class _Region:
         self.height = height
 
     @classmethod
-    def get_or_create(cls, fig: Figure, height: float = 0.4) -> "_Region":
+    def get_or_create(cls, fig: Figure, height: float = 0.4) -> _Region:
         """Get existing region or create a new one.
 
         Parameters

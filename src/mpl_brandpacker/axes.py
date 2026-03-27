@@ -116,7 +116,7 @@ def patch_axes(
     setattr(ax, marker_attr, True)
     setattr(ax, proxy_attr, MethodProxy(ax, Axes))
 
-    for name in (methods or getattr(brand_cls, "_brand_methods", [])):
+    for name in methods or getattr(brand_cls, "_brand_methods", []):
         patch_method(ax, brand_cls, name)
 
     if extra_patches:

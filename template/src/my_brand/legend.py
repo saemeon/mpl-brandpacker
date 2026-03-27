@@ -17,7 +17,6 @@ Usage::
 
 from __future__ import annotations
 
-import numpy as np
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 from matplotlib.legend import Legend
@@ -134,7 +133,7 @@ def _collect_handles_labels(target, axes, handles, labels, make_unique):
 
     if make_unique:
         seen = {}
-        for handle, label in zip(h, l):
+        for handle, label in zip(h, l, strict=False):
             seen[label] = handle
         l = list(seen.keys())
         h = list(seen.values())

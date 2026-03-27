@@ -16,16 +16,19 @@ class TestColorsBase:
 
     def test_rejects_named_color(self):
         with pytest.raises(ValueError, match="not a valid hex color"):
+
             class C(ColorsBase):
                 bad = "red"
 
     def test_rejects_short_hex(self):
         with pytest.raises(ValueError, match="not a valid hex color"):
+
             class C(ColorsBase):
                 bad = "#fff"
 
     def test_rejects_no_hash(self):
         with pytest.raises(ValueError, match="not a valid hex color"):
+
             class C(ColorsBase):
                 bad = "ff0000"
 
@@ -39,6 +42,7 @@ class TestColorsBase:
     def test_printable_repr(self):
         class C(ColorsBase):
             """My colors."""
+
             a = "#111111"
             b = "#222222"
 

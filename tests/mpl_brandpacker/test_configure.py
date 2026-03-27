@@ -70,6 +70,7 @@ class TestConfigure:
 
         fig = plt.figure()
         from mpl_brandpacker._config import get_make_fig
+
         get_make_fig()(fig)
 
         ax = fig.add_subplot(111)

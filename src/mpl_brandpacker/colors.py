@@ -30,14 +30,13 @@ class ColorsBase(str, PrintableEnum):
     Call ``MyColors.plot()`` to display a swatch grid of all colors.
     """
 
-    def __init_subclass__(cls, **kwargs):
-        super().__init_subclass__(**kwargs)
-        for name, member in cls.__members__.items():
-            if not _HEX_RE.match(member.value):
-                raise ValueError(
-                    f"{cls.__name__}.{name} = {member.value!r} is not a valid "
-                    f"hex color. Use '#RRGGBB' format (e.g. '#2563eb')."
-                )
+    def __new__(cls, value):
+        if not _HEX_RE.match(value):
+            raise ValueError(
+                f"{cls.__name__}: {value!r} is not a valid hex color. "
+                f"Use '#RRGGBB' format (e.g. '#2563eb')."
+            )
+        return str.__new__(cls, value)
 
     @classmethod
     def plot(cls, figsize=None, columns=4):
@@ -72,14 +71,19 @@ class ColorsBase(str, PrintableEnum):
             color = cls[name].value
 
             rect = patches.FancyBboxPatch(
-                (col + 0.05, row + 0.1), 0.4, 0.4,
+                (col + 0.05, row + 0.1),
+                0.4,
+                0.4,
                 boxstyle="round,pad=0.02",
-                facecolor=color, edgecolor="#ddd", linewidth=0.5,
+                facecolor=color,
+                edgecolor="#ddd",
+                linewidth=0.5,
             )
             ax.add_patch(rect)
             ax.text(col + 0.55, row + 0.35, name, fontsize=8, va="center")
-            ax.text(col + 0.55, row + 0.15, color, fontsize=6.5,
-                    va="center", color="#888")
+            ax.text(
+                col + 0.55, row + 0.15, color, fontsize=6.5, va="center", color="#888"
+            )
 
         fig.tight_layout()
         return fig

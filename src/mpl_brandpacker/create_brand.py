@@ -20,6 +20,7 @@ from pathlib import Path
 
 TEMPLATE_DIR = Path(__file__).parent.parent.parent / "template"
 
+
 def create_brand(
     name: str,
     output: str | Path | None = None,
@@ -87,7 +88,10 @@ def create_brand(
     for path in output_dir.rglob("*"):
         if not path.is_file():
             continue
-        if path.suffix not in (".py", ".toml", ".md", ".mplstyle", "") and path.name != "LICENSE":
+        if (
+            path.suffix not in (".py", ".toml", ".md", ".mplstyle", "")
+            and path.name != "LICENSE"
+        ):
             continue
         text = path.read_text()
         for old, new in replacements.items():
@@ -112,8 +116,11 @@ def main():
 
     name = args.name.strip().replace("-", "_").replace(" ", "_").lower()
     output = create_brand(
-        name, args.output,
-        author=args.author, email=args.email, description=args.description,
+        name,
+        args.output,
+        author=args.author,
+        email=args.email,
+        description=args.description,
     )
     print(f"Created brand package: {output}/")
     print(f"  cd {output}")

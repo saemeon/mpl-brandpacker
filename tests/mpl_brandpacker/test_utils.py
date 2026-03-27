@@ -17,6 +17,7 @@ class TestPrintableEnum:
     def test_basic(self):
         class E(PrintableEnum):
             """My enum."""
+
             a = 1
             b = 2
 
