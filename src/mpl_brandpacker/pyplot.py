@@ -43,40 +43,40 @@ from matplotlib.pyplot import *  # noqa
 
 from mpl_brandpacker._config import get_make_ax, get_make_fig
 
-_spec_plt = importlib.util.find_spec("matplotlib")
-_bp_matplotlib = importlib.util.module_from_spec(_spec_plt)
-_spec_plt.loader.exec_module(_bp_matplotlib)
+_spec_plt = importlib.util.find_spec("matplotlib")  # ty:ignore[possibly-missing-submodule]
+_bp_matplotlib = importlib.util.module_from_spec(_spec_plt)  # type: ignore[arg-type]  # ty:ignore[possibly-missing-submodule]
+_spec_plt.loader.exec_module(_bp_matplotlib)  # type: ignore[union-attr]
 sys.modules["_bp_matplotlib"] = _bp_matplotlib
 
-import _bp_matplotlib.pyplot  # noqa
+import _bp_matplotlib.pyplot  # noqa  # type: ignore[import-not-found]  # ty:ignore[unresolved-import]
 
 
 def _patched_gcf():
     """Get the current figure, patch it."""
-    fig = matplotlib.pyplot.gcf()
+    fig = matplotlib.pyplot.gcf()  # type: ignore[attr-defined]  # ty:ignore[unresolved-attribute]
     return get_make_fig()(fig)
 
 
-_bp_matplotlib.pyplot.gcf = _patched_gcf
+_bp_matplotlib.pyplot.gcf = _patched_gcf  # type: ignore[attr-defined]
 
 
 def _patched_gca(**kwargs):
     """Get the current axes, patch it."""
-    ax = matplotlib.pyplot.gca(**kwargs)
+    ax = matplotlib.pyplot.gca(**kwargs)  # type: ignore[attr-defined]  # ty:ignore[unresolved-attribute]
     return get_make_ax()(ax)
 
 
-_bp_matplotlib.pyplot.gca = _patched_gca
+_bp_matplotlib.pyplot.gca = _patched_gca  # type: ignore[attr-defined]
 
 
 def _patched_figure(*args, **kwargs):
     """Create a new figure, patch it."""
-    fig = matplotlib.pyplot.figure(*args, **kwargs)
+    fig = matplotlib.pyplot.figure(*args, **kwargs)  # type: ignore[attr-defined]  # ty:ignore[unresolved-attribute]
     return get_make_fig()(fig)
 
 
-_bp_matplotlib.pyplot.figure = _patched_figure
+_bp_matplotlib.pyplot.figure = _patched_figure  # type: ignore[attr-defined]
 
 
 # Import all objects from _bp_matplotlib.pyplot AFTER the overrides
-from _bp_matplotlib.pyplot import *  # noqa
+from _bp_matplotlib.pyplot import *  # noqa  # type: ignore[import-not-found]  # ty:ignore[unresolved-import]

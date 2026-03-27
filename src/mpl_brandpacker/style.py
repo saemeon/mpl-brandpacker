@@ -15,13 +15,11 @@ from pathlib import Path
 
 import matplotlib.style.core
 from matplotlib import font_manager
-from matplotlib.style import (
-    available,  # noqa F401
-    context,  # noqa F401
-    library,  # noqa F401
-    reload_library,  # noqa F401
-    use,  # noqa F401
-)
+from matplotlib.style import available as available
+from matplotlib.style import context as context
+from matplotlib.style import library as library
+from matplotlib.style import reload_library as reload_library
+from matplotlib.style import use as use
 
 
 def register_stylesheet(packagepath: Path) -> None:
@@ -41,5 +39,5 @@ def register_stylesheet(packagepath: Path) -> None:
     for font_file in font_files:
         font_manager.fontManager.addfont(font_file)
 
-    matplotlib.style.core.USER_LIBRARY_PATHS += [packagepath]
+    matplotlib.style.core.USER_LIBRARY_PATHS.append(str(packagepath))  # type: ignore[union-attr]
     matplotlib.style.core.reload_library()

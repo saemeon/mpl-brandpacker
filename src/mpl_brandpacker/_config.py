@@ -103,7 +103,9 @@ def configure(
 
         _make_ax = _auto_make_ax
     else:
-        _make_ax = lambda ax, **kw: ax  # noqa: E731
+        def _passthrough_ax(ax, **kw):
+            return ax
+        _make_ax = _passthrough_ax
 
     _style_fn = style_fn or _make_ax
 
@@ -119,7 +121,9 @@ def configure(
 
         _make_fig = _auto_make_fig
     else:
-        _make_fig = lambda fig: fig  # noqa: E731
+        def _passthrough_fig(fig):
+            return fig
+        _make_fig = _passthrough_fig
 
     # --- Register stylesheet ---
     if stylesheet is not None:

@@ -45,9 +45,9 @@ def _patched_generate(self: pd_mpl.core.MPLPlot) -> None:
     style_fn = get_style_fn()
 
     # --- pandas internals, part 1 ---
-    self._args_adjust()
+    self._args_adjust()  # type: ignore[attr-defined]  # ty:ignore[unresolved-attribute]
     self._compute_plot_data()
-    self._setup_subplots()
+    self._setup_subplots()  # type: ignore[attr-defined]  # ty:ignore[unresolved-attribute]
 
     # Separate brand kwargs from pandas kwargs
     style_kw, self.kwds = separate_kwargs(
@@ -62,14 +62,14 @@ def _patched_generate(self: pd_mpl.core.MPLPlot) -> None:
         make_ax(ax, patch_legend=patch_legend)
 
     # --- pandas internals, part 2 ---
-    self._make_plot()
+    self._make_plot()  # type: ignore[call-arg]  # ty:ignore[missing-argument]
     self._add_table()
     if self.legend and patch_legend:
         for ax in self.axes:
             ax.legend()
     else:
         self._make_legend()
-    self._adorn_subplots()
+    self._adorn_subplots()  # type: ignore[call-arg]  # ty:ignore[missing-argument]
 
     # --- apply brand style to each axes ---
     for ax in self.axes:
@@ -94,9 +94,9 @@ def use_for_pandas() -> None:
         "This changes the global pandas df.plot() behaviour.\n"
         "To revert, call mpl_brandpacker.pandas.reset_pandas()"
     )
-    pd_mpl.core.MPLPlot.generate = _patched_generate
+    pd_mpl.core.MPLPlot.generate = _patched_generate  # type: ignore[method-assign]  # ty:ignore[invalid-assignment]
 
 
 def reset_pandas() -> None:
     """Reset pandas df.plot() to default behaviour."""
-    pd_mpl.core.MPLPlot.generate = _mpl_generate
+    pd_mpl.core.MPLPlot.generate = _mpl_generate  # type: ignore[method-assign]

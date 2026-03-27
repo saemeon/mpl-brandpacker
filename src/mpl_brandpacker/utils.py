@@ -27,9 +27,9 @@ class PrintableEnumMeta(EnumMeta):
     """Metaclass that makes enum repr list all members."""
 
     def __repr__(cls) -> str:
-        return cls.__doc__ + "\n" + "\n".join(cls.__members__.keys())
+        return (cls.__doc__ or "") + "\n" + "\n".join(cls.__members__.keys())
 
-    def __getitem__(cls, item: str):
+    def __getitem__(cls, item: str):  # type: ignore[override]  # ty:ignore[invalid-method-override]
         item = item.replace("-", "_")
         try:
             return cls._member_map_[item]
@@ -78,30 +78,32 @@ def get_text_bbox(
         Font size in points.
     """
     if text is None:
-        box = Bbox([[0, 0], [0, 0]])
+        box = ExtendedBbox([[0, 0], [0, 0]])
         box.width_inch = 0
         box.height_inch = 0
         return box
 
     if isinstance(text, Text):
         text_el = text
-        fig = text_el.figure
+        _fig = text_el.figure
+        assert _fig is not None, "Text element has no associated figure"
         remove = False
     else:
-        fig = fig or Figure()
-        text_el = fig.text(0.5, 0.5, text, fontsize=fontsize, **kwargs)
+        _fig = fig or Figure()
+        text_el = _fig.text(0.5, 0.5, text, fontsize=fontsize, **kwargs)
         remove = True
 
     try:
-        renderer = fig.canvas.get_renderer() if fig.canvas else None
+        renderer = _fig.canvas.get_renderer() if _fig.canvas else None  # type: ignore[union-attr]  # ty:ignore[unresolved-attribute]
     except Exception:
         renderer = None
 
-    box = text_el.get_window_extent(renderer=renderer)
+    raw = text_el.get_window_extent(renderer=renderer)
     if remove:
         text_el.remove()
-    box.width_inch = box.width / fig.get_dpi()
-    box.height_inch = box.height / fig.get_dpi()
+    box = ExtendedBbox(raw.get_points())
+    box.width_inch = box.width / _fig.get_dpi()
+    box.height_inch = box.height / _fig.get_dpi()
     return box
 
 
