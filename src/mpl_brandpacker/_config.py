@@ -76,20 +76,21 @@ def configure(
             stacklevel=2,
         )
 
-    # --- Validate _brand_methods ---
-    if figure_cls is not None:
-        for name in getattr(figure_cls, "_brand_methods", []):
-            if not hasattr(figure_cls, name):
+    # --- Validate _brand_methods and _brand_extra_patches ---
+    for cls in (figure_cls, axes_cls):
+        if cls is None:
+            continue
+        for name in getattr(cls, "_brand_methods", []):
+            if not hasattr(cls, name):
                 raise ValueError(
-                    f"{figure_cls.__name__}._brand_methods lists '{name}' "
-                    f"but {figure_cls.__name__}.{name}() is not defined."
+                    f"{cls.__name__}._brand_methods lists '{name}' "
+                    f"but {cls.__name__}.{name}() is not defined."
                 )
-    if axes_cls is not None:
-        for name in getattr(axes_cls, "_brand_methods", []):
-            if not hasattr(axes_cls, name):
+        for target, source in getattr(cls, "_brand_extra_patches", {}).items():
+            if not hasattr(cls, source):
                 raise ValueError(
-                    f"{axes_cls.__name__}._brand_methods lists '{name}' "
-                    f"but {axes_cls.__name__}.{name}() is not defined."
+                    f"{cls.__name__} has @brand_method(overwrite={target!r}) "
+                    f"but {cls.__name__}.{source}() is not defined."
                 )
 
     # --- Build make_ax first (needed by make_fig) ---
@@ -173,3 +174,24 @@ def get_style_fn() -> Callable:
 def is_configured() -> bool:
     """Return True if configure() has been called."""
     return _make_fig is not None and _make_ax is not None
+
+
+def reset() -> None:
+    """Reset mpl-brandpacker to unconfigured state.
+
+    Clears all hooks set by :func:`configure` and reverts the pandas
+    ``df.plot()`` patch if it was applied. After calling this, you can
+    call :func:`configure` again with different settings.
+    """
+    global _make_fig, _make_ax, _style_fn
+    _make_fig = None
+    _make_ax = None
+    _style_fn = None
+
+    # Revert pandas patch if it was applied
+    try:
+        from mpl_brandpacker.pandas import reset_pandas
+
+        reset_pandas()
+    except Exception:
+        pass

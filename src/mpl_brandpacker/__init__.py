@@ -21,14 +21,19 @@ Quick start
         full = (6.93, 5.14)
 
     class MyFigure(mbp.BrandFigure):
-        '''Common methods: set_title, set_subtitle, set_sources, set_footnote, legend'''
-        _brand_methods = ["set_title", "set_sources"]
+        @mbp.brand_method
         def set_title(self, title): ...
+
+        @mbp.brand_method
         def set_sources(self, sources): ...
 
+        @mbp.brand_method(overwrite="savefig")
+        def _branded_save(self, *a, **kw):
+            '''Override savefig while keeping Pylance's original docstring.'''
+            self.mpl.savefig(*a, dpi=300, **kw)
+
     class MyAxes(mbp.BrandAxes):
-        '''Common methods: set_xlabel, set_ylabel, legend, zeroline, set_dateaxis'''
-        _brand_methods = ["set_xlabel"]
+        @mbp.brand_method
         def set_xlabel(self, label): ...
 
 2. **Configure** once at import time::
@@ -58,26 +63,35 @@ Quick start
     plt.sources("Bloomberg")   # pyplot-level brand shortcut
     fig.mpl.legend()           # access original matplotlib methods via .mpl
 
+5. **Reset** (e.g. in notebooks when iterating)::
+
+    mbp.reset()                          # clears all hooks, reverts pandas
+    mbp.configure(figure_cls=..., ...)   # re-configure with new settings
+
 Submodules (advanced)
 ---------------------
 
 - ``mpl_brandpacker.pyplot`` — branded drop-in for matplotlib.pyplot
 - ``mpl_brandpacker.pandas`` — ``use_for_pandas()`` for manual df.plot() opt-in
-- ``mpl_brandpacker.patcher`` — low-level ``patch_method()``, ``MethodProxy``
+- ``mpl_brandpacker.patcher`` — low-level ``patch_method()``, ``MethodProxy``,
+  ``brand_method``
 - ``mpl_brandpacker.style`` — ``register_stylesheet()``
 - ``mpl_brandpacker.sizes`` — ``MM_TO_INCH``, ``POINTS_TO_INCH``
 - ``mpl_brandpacker.utils`` — ``get_text_bbox()``, ``separate_kwargs()``
 """
 
-from mpl_brandpacker._config import configure
+from mpl_brandpacker._config import configure, reset
 from mpl_brandpacker.axes import BrandAxes
 from mpl_brandpacker.colors import ColorsBase
 from mpl_brandpacker.figure import BrandFigure
+from mpl_brandpacker.patcher import brand_method
 from mpl_brandpacker.sizes import FigsizesBase, SizesBase
 from mpl_brandpacker.utils import PrintableEnum
 
 __all__ = [
     "configure",
+    "reset",
+    "brand_method",
     "BrandFigure",
     "BrandAxes",
     "ColorsBase",
