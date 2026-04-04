@@ -62,6 +62,7 @@ addopts = "--cov=src/mpl_brandpacker --cov-report=term-missing"
 
 [tool.ty.src]
 include = ["src"]
+exclude = ["src/mpl_brandpacker/_template"]
 
 [tool.mypy]
 ignore_missing_imports = true
