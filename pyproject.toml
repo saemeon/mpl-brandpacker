@@ -54,7 +54,7 @@ version = { attr = "mpl_brandpacker._version.__version__" }
 where = ["src"]
 
 [tool.setuptools.package-data]
-mpl_brandpacker = ["py.typed"]
+mpl_brandpacker = ["py.typed", "_template/**/*", "_template/*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

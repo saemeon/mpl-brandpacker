@@ -20,9 +20,12 @@ class Colors(mbp.ColorsBase):
     primary = "#1a5276"
     accent = "#e67e22"
     dark = "#2c3e50"
+    muted = "slategray"       # named colors work too
 
 Colors.plot()  # → swatch grid for documentation
 ```
+
+`ColorsBase` accepts any matplotlib color string (`#RRGGBB`, `#RRGGBBAA`, `#RGB`, named colors, `C0`–`C9`, `tab:blue`, etc.) and normalizes to `#rrggbb` at definition time.
 
 ```python
 # my_brand/sizes.py
@@ -40,27 +43,42 @@ class FontSizes(mbp.SizesBase):
     _scalers = {"presentation": 2.0}
 ```
 
+`SizesBase.scaled()` is thread-safe — concurrent threads and async tasks each get their own scaled values.
+
 ```python
 # my_brand/figure.py
-class MyFigure(mbp.BrandFigure):
-    _brand_methods = ["set_title", "set_sources"]
+from mpl_brandpacker import BrandFigure, brand_method
 
+class MyFigure(BrandFigure):
+    @brand_method
     def set_title(self, title, **kw):
         self.mpl.suptitle(title, fontsize=10, weight="bold", x=0.02, ha="left", **kw)
 
+    @brand_method
     def set_sources(self, sources, **kw):
         self.text(0.02, 0.02, f"Source: {sources}", fontsize=6.5,
                   color="#888", transform=self.transFigure, **kw)
+
+    @brand_method(overwrite="savefig")
+    def _branded_save(self, *args, **kw):
+        """Override savefig — Pylance still shows the original docstring."""
+        kw.setdefault("dpi", 300)
+        kw.setdefault("bbox_inches", "tight")
+        self.mpl.savefig(*args, **kw)
 ```
+
+Use `@brand_method(overwrite="name")` to override a built-in method while keeping IDE autocompletion on the original.
 
 ```python
 # my_brand/axes.py
-class MyAxes(mbp.BrandAxes):
-    _brand_methods = ["set_xlabel", "set_ylabel"]
+from mpl_brandpacker import BrandAxes, brand_method
 
+class MyAxes(BrandAxes):
+    @brand_method
     def set_xlabel(self, label, **kw):
         self.mpl.set_xlabel(label, fontsize=8, **kw)
 
+    @brand_method
     def set_ylabel(self, label, **kw):
         self.mpl.set_ylabel(label, fontsize=8, rotation="horizontal", **kw)
 
@@ -123,11 +141,30 @@ fig.mpl.legend()       # original Figure.legend
 ax.mpl.set_xlabel()    # original Axes.set_xlabel
 ```
 
+### 5. Reset (notebooks)
+
+When iterating on your brand in a notebook, use `reset()` to start fresh:
+
+```python
+import mpl_brandpacker as mbp
+
+mbp.reset()                          # clears all hooks, reverts pandas
+mbp.configure(figure_cls=..., ...)   # re-configure
+```
+
 ## API Reference
 
 ### configure
 
 ::: mpl_brandpacker.configure
+
+### reset
+
+::: mpl_brandpacker.reset
+
+### brand_method
+
+::: mpl_brandpacker.patcher.brand_method
 
 ### BrandFigure
 
