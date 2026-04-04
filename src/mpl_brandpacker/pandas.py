@@ -90,8 +90,8 @@ def use_for_pandas() -> None:
             "mpl_brandpacker has not been configured. "
             "Call mpl_brandpacker.configure(make_fig=..., make_ax=...) first."
         )
-    logger.warning(
-        "This changes the global pandas df.plot() behaviour.\n"
+    logger.info(
+        "This changes the global pandas df.plot() behaviour. "
         "To revert, call mpl_brandpacker.pandas.reset_pandas()"
     )
     pd_mpl.core.MPLPlot.generate = _patched_generate  # type: ignore[method-assign]  # ty:ignore[invalid-assignment]

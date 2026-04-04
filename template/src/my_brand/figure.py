@@ -3,7 +3,7 @@
 Uses Header/Footer helper for layout and FontSizes for sizing.
 """
 
-from mpl_brandpacker import BrandFigure
+from mpl_brandpacker import BrandFigure, brand_method
 from mpl_brandpacker.figure import patch_figure
 from my_brand.colors import Colors
 from my_brand.header import Footer, Header
@@ -13,8 +13,7 @@ from my_brand.sizes import FontSizes
 class MyFigure(BrandFigure):
     """Example branded Figure using Header/Footer regions."""
 
-    _brand_methods = ["set_title", "set_subtitle", "set_sources", "set_footnote"]
-
+    @brand_method
     def set_title(self, title: str, **kw) -> None:
         self._brand_title = title
         h = Header.get_or_create(self, height=0.5)
@@ -32,6 +31,7 @@ class MyFigure(BrandFigure):
         if subtitle:
             h.text(subtitle, y=0.15, fontsize=FontSizes.subtitle, color=Colors.gray)
 
+    @brand_method
     def set_subtitle(self, subtitle: str, **kw) -> None:
         self._brand_subtitle = subtitle
         title = getattr(self, "_brand_title", None)
@@ -43,6 +43,7 @@ class MyFigure(BrandFigure):
                 subtitle, y=0.5, fontsize=FontSizes.subtitle, color=Colors.gray, **kw
             )
 
+    @brand_method
     def set_sources(self, sources: str, **kw) -> None:
         self._brand_sources = sources
         f = Footer.get_or_create(self, height=0.25)
@@ -65,6 +66,7 @@ class MyFigure(BrandFigure):
                 color=Colors.gray,
             )
 
+    @brand_method
     def set_footnote(self, footnote: str, **kw) -> None:
         self._brand_footnote = footnote
         sources = getattr(self, "_brand_sources", None)

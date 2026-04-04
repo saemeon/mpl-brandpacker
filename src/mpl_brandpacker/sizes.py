@@ -31,6 +31,7 @@ Example::
 from __future__ import annotations
 
 import contextlib
+import contextvars
 
 import matplotlib.pyplot as plt
 
@@ -116,8 +117,36 @@ class FigsizesBase(tuple, PrintableEnum):
 # ---------------------------------------------------------------------------
 
 
-class SizesBase:
+class _SizesMeta(type):
+    """Metaclass that intercepts attribute reads to return scaled values.
+
+    Scaled values are stored per-context (thread/async-safe) using
+    :mod:`contextvars`, so concurrent ``scaled()`` calls never collide.
+    """
+
+    def __getattribute__(cls, name: str):
+        # Fast path for private/dunder and known class machinery
+        if name.startswith("_") or name in (
+            "add_scaler",
+            "scaled",
+        ):
+            return super().__getattribute__(name)
+
+        # Check for a context-local override
+        overrides_var = cls.__dict__.get("_overrides")
+        if overrides_var is not None:
+            overrides = overrides_var.get(None)
+            if overrides is not None and name in overrides:
+                return overrides[name]
+
+        return super().__getattribute__(name)
+
+
+class SizesBase(metaclass=_SizesMeta):
     """Base class for brand font sizes with per-figsize scaling.
+
+    Thread-safe: ``scaled()`` uses :mod:`contextvars` so concurrent
+    contexts (threads, async tasks) each get their own scaled values.
 
     Define font sizes as class attributes (in points) and ``_scalers``
     as a dict mapping names to scaling specs.
@@ -150,15 +179,15 @@ class SizesBase:
     """
 
     _scalers: dict[str, float | tuple[float, list[str] | None]] = {}
-    _originals: dict[str, float] = {}
-    _active_scaler: float | None = None
 
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
         if "_scalers" not in cls.__dict__:
             cls._scalers = dict(getattr(cls, "_scalers", {}))
-        cls._originals = {}
-        cls._active_scaler = None
+        # Each subclass gets its own ContextVar for thread-safe overrides
+        cls._overrides: contextvars.ContextVar[dict[str, float] | None] = (
+            contextvars.ContextVar(f"_overrides_{cls.__name__}", default=None)
+        )
 
     @classmethod
     def add_scaler(
@@ -183,7 +212,7 @@ class SizesBase:
     @classmethod
     @contextlib.contextmanager
     def scaled(cls, factor_or_name: str | float):
-        """Temporarily scale font sizes.
+        """Temporarily scale font sizes (thread-safe).
 
         Parameters
         ----------
@@ -208,25 +237,19 @@ class SizesBase:
             else:
                 scaler, affected = float(spec), None
 
-        # Save originals and scale
         all_attrs = _get_size_attrs(cls)
         target_attrs = affected if affected is not None else all_attrs
 
-        cls._originals = {}
-        for name in all_attrs:
-            original = getattr(cls, name)
-            cls._originals[name] = original
-            if name in target_attrs:
-                setattr(cls, name, original * scaler)
+        overrides = {}
+        for name in target_attrs:
+            original = type.__getattribute__(cls, name)
+            overrides[name] = original * scaler
 
-        cls._active_scaler = scaler
+        token = cls._overrides.set(overrides)
         try:
             yield
         finally:
-            for name, original in cls._originals.items():
-                setattr(cls, name, original)
-            cls._active_scaler = None
-            cls._originals = {}
+            cls._overrides.reset(token)
 
 
 def _get_size_attrs(cls: type) -> list[str]:
@@ -234,5 +257,6 @@ def _get_size_attrs(cls: type) -> list[str]:
     return [
         name
         for name in vars(cls)
-        if not name.startswith("_") and isinstance(getattr(cls, name), (int, float))
+        if not name.startswith("_")
+        and isinstance(type.__getattribute__(cls, name), (int, float))
     ]

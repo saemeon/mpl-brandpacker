@@ -1,6 +1,7 @@
 """Base class for brand color enums.
 
-Enforces hex color format at class definition time.
+Accepts any color format that matplotlib understands and normalizes to hex
+at class definition time.
 
 Example::
 
@@ -8,35 +9,51 @@ Example::
 
     class Colors(ColorsBase):
         primary = "#2563eb"
-        secondary = "#64748b"
-        accent = "#f59e0b"
-        # bad = "red"  # → ValueError
+        secondary = "slategray"
+        semi = "#2563eb80"                  # hex with alpha
+        short = "#fab"                      # short hex
+        cycle = "C0"                        # matplotlib cycle colors
+        css = "coral"                       # CSS named colors
 
     Colors.plot()  # → swatch grid
 """
 
 from __future__ import annotations
 
-import re
+from matplotlib.colors import to_hex
 
 from mpl_brandpacker.utils import PrintableEnum
 
-_HEX_RE = re.compile(r"^#[0-9a-fA-F]{6}$")
-
 
 class ColorsBase(str, PrintableEnum):
-    """Base class for brand color palettes. All values must be '#RRGGBB'.
+    """Base class for brand color palettes.
+
+    Accepts any string color that matplotlib understands:
+
+    - Hex strings: ``"#RGB"``, ``"#RRGGBB"``, ``"#RGBA"``, ``"#RRGGBBAA"``
+    - Named colors: ``"red"``, ``"slategray"``, ``"coral"``
+    - Cycle colors: ``"C0"``, ``"C1"``, ``"tab:blue"``
+
+    All values are normalized to ``"#rrggbb"`` (or ``"#rrggbbaa"`` when
+    alpha < 1) at definition time so they can be used directly as strings.
 
     Call ``MyColors.plot()`` to display a swatch grid of all colors.
     """
 
     def __new__(cls, value):
-        if not _HEX_RE.match(value):
+        try:
+            # Keep alpha when present (keep_alpha=True), normalize to hex
+            hexval = to_hex(value, keep_alpha=True)
+            # Strip alpha suffix if fully opaque (#rrggbbff → #rrggbb)
+            if len(hexval) == 9 and hexval.endswith("ff"):
+                hexval = hexval[:7]
+        except ValueError:
             raise ValueError(
-                f"{cls.__name__}: {value!r} is not a valid hex color. "
-                f"Use '#RRGGBB' format (e.g. '#2563eb')."
-            )
-        return str.__new__(cls, value)
+                f"{cls.__name__}: {value!r} is not a valid color. "
+                f"Use any matplotlib color format: '#RRGGBB', '#RRGGBBAA', "
+                f"named colors ('red', 'C0'), or RGB/RGBA tuples."
+            ) from None
+        return str.__new__(cls, hexval)
 
     @classmethod
     def plot(cls, figsize=None, columns=4):

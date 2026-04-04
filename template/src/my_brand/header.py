@@ -10,15 +10,16 @@ provided, but the brand author can use any matplotlib artist.
 Example::
 
     from mpl_brandpacker.header import Header, Footer
+    from mpl_brandpacker import brand_method
 
     class MyFigure(BrandFigure):
-        _brand_methods = ["set_title", "set_sources"]
-
+        @brand_method
         def set_title(self, title, **kw):
             h = Header.get_or_create(self, height=0.5)
             h.clear()
             h.text(title, y=0.7, fontsize=10, weight="bold")
 
+        @brand_method
         def set_sources(self, sources, **kw):
             f = Footer.get_or_create(self, height=0.3)
             f.clear()

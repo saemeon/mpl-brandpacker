@@ -41,7 +41,17 @@ import sys
 import matplotlib.pyplot
 from matplotlib.pyplot import *  # noqa
 
-from mpl_brandpacker._config import get_make_ax, get_make_fig
+from mpl_brandpacker._config import get_make_ax, get_make_fig, is_configured
+
+if not is_configured():
+    import warnings
+
+    warnings.warn(
+        "mpl_brandpacker.pyplot imported before configure() was called. "
+        "Brand patching will fail until you call mpl_brandpacker.configure(...).",
+        UserWarning,
+        stacklevel=2,
+    )
 
 _spec_plt = importlib.util.find_spec(
     "matplotlib"
