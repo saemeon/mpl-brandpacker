@@ -18,7 +18,8 @@ import argparse
 import shutil
 from pathlib import Path
 
-TEMPLATE_DIR = Path(__file__).parent.parent.parent / "template"
+# Bundled inside the package so it works from pip installs too.
+TEMPLATE_DIR = Path(__file__).parent / "_template"
 
 
 def create_brand(

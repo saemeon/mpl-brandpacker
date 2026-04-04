@@ -7,12 +7,16 @@ optionally wraps axes-creation methods so new axes are auto-patched too.
 Example::
 
     from mpl_brandpacker.figure import BrandFigure, patch_figure
+    from mpl_brandpacker import brand_method
 
     class MyFigure(BrandFigure):
-        _brand_methods = ["set_title", "set_sources", "legend"]
-
+        @brand_method
         def set_title(self, title, **kw): ...
+
+        @brand_method
         def set_sources(self, sources, **kw): ...
+
+        @brand_method
         def legend(self, *a, **kw): ...
 
     def make_fig(fig):
@@ -27,33 +31,24 @@ from collections.abc import Callable
 import numpy as np
 from matplotlib.figure import Figure
 
-from mpl_brandpacker.patcher import MethodProxy, patch_method
+from mpl_brandpacker.patcher import MethodProxy, collect_brand_methods, patch_method
 
 
 class BrandFigure(Figure):
     """Base class for brand Figure implementations.
 
-    Subclass this and define your brand's figure-level methods.
-
-    Attributes
-    ----------
-    _brand_methods : list[str]
-        Method names to bind onto Figure instances.
-        Common choices: ``"set_title"``, ``"set_subtitle"``,
-        ``"set_sources"``, ``"set_footnote"``, ``"legend"``,
-        ``"add_extraspace_header"``, ``"add_extraspace_footer"``.
-
-    Example::
+    Subclass this and mark your brand methods with ``@brand_method``::
 
         class MyFigure(BrandFigure):
-            _brand_methods = ["set_title", "set_sources", "legend"]
+            @brand_method
+            def set_title(self, title, **kw): ...
 
-            def set_title(self, title, **kw):
-                # self is the matplotlib Figure instance
-                _add_header(self, title=title, **kw)
+            @brand_method
+            def set_sources(self, sources, **kw): ...
 
-            def set_sources(self, sources, **kw):
-                _add_footer(self, sources=sources, **kw)
+            @brand_method(overwrite="savefig")
+            def _branded_save(self, *a, **kw):
+                self.mpl.savefig(*a, dpi=300, **kw)
 
     After patching:
 
@@ -62,7 +57,22 @@ class BrandFigure(Figure):
     """
 
     _brand_methods: list[str] = []
+    _brand_extra_patches: dict[str, str] = {}
     mpl: Figure  # MethodProxy at runtime, typed as Figure for IDE
+
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+        # Merge explicitly listed + @brand_method-decorated methods
+        decorated, extra_patches = collect_brand_methods(cls)
+        explicit = list(cls.__dict__.get("_brand_methods", []))
+        merged = list(dict.fromkeys(explicit + decorated))  # dedupe, order-preserving
+        if merged:
+            cls._brand_methods = merged
+        # Merge extra_patches from decorator(overwrite=...) + explicit class attr
+        cls_extra = dict(cls.__dict__.get("_brand_extra_patches", {}))
+        cls_extra.update(extra_patches)
+        if cls_extra:
+            cls._brand_extra_patches = cls_extra
 
 
 def patch_figure(
@@ -91,7 +101,9 @@ def patch_figure(
         Method names to patch. Defaults to ``brand_cls._brand_methods``.
     extra_patches :
         ``{target_name: source_name}`` for renamed methods
-        (e.g. ``{"suptitle": "set_title"}``).
+        (e.g. ``{"savefig": "_branded_savefig"}``).
+        Defaults to ``brand_cls._brand_extra_patches`` (populated
+        automatically by ``@brand_method(overwrite=...)``).
     proxy_attr :
         Attribute name for :class:`MethodProxy` (default ``"mpl"``).
     marker_attr :
@@ -108,9 +120,11 @@ def patch_figure(
     for name in methods or getattr(brand_cls, "_brand_methods", []):
         patch_method(fig, brand_cls, name)
 
+    all_extra = dict(getattr(brand_cls, "_brand_extra_patches", {}))
     if extra_patches:
-        for target_name, source_name in extra_patches.items():
-            patch_method(fig, brand_cls, target_name, source_name)
+        all_extra.update(extra_patches)
+    for target_name, source_name in all_extra.items():
+        patch_method(fig, brand_cls, target_name, source_name)
 
     if make_ax is not None:
         _wrap_axes_creation(fig, make_ax, proxy_attr)

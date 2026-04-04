@@ -1,18 +1,22 @@
 """Axes patching: base class + patcher.
 
 ``BrandAxes`` is a base class that brand implementations subclass.
-Define your custom axes methods, list them in ``_brand_methods``,
-and use ``patch_axes()`` to bind them onto plain Axes instances.
+Mark your custom axes methods with ``@brand_method`` and use
+``patch_axes()`` to bind them onto plain Axes instances.
 
 Example::
 
     from mpl_brandpacker.axes import BrandAxes, patch_axes
+    from mpl_brandpacker import brand_method
 
     class MyAxes(BrandAxes):
-        _brand_methods = ["set_xlabel", "legend", "zeroline"]
-
+        @brand_method
         def set_xlabel(self, label): ...
+
+        @brand_method
         def legend(self, **kw): ...
+
+        @brand_method
         def zeroline(self): ...
 
     patch_axes(ax, MyAxes, style_fn=set_my_style)
@@ -25,39 +29,20 @@ import functools
 
 from matplotlib.axes import Axes
 
-from mpl_brandpacker.patcher import MethodProxy, patch_method
+from mpl_brandpacker.patcher import MethodProxy, collect_brand_methods, patch_method
 
 
 class BrandAxes(Axes):
     """Base class for brand Axes implementations.
 
-    Subclass this and define your brand's axes-level methods.
-
-    Attributes
-    ----------
-    _brand_methods : list[str]
-        Method names to bind onto Axes instances.
-        Common choices: ``"set_xlabel"``, ``"set_ylabel"``,
-        ``"set_ylabel_side"``, ``"legend"``, ``"zeroline"``,
-        ``"set_dateaxis"``, ``"annotated_vline"``.
-
-    Example::
+    Subclass this and mark your brand methods with ``@brand_method``::
 
         class MyAxes(BrandAxes):
-            _brand_methods = ["set_xlabel", "set_ylabel", "legend"]
+            @brand_method
+            def set_xlabel(self, label, **kw): ...
 
-            def set_xlabel(self, label, **kw):
-                # self is the matplotlib Axes instance
-                defaults = {"fontsize": 8}
-                defaults.update(kw)
-                self.mpl.set_xlabel(label, **defaults)
-
-            def set_ylabel(self, label, **kw):
-                self.mpl.set_ylabel(label, rotation="horizontal", **kw)
-
-            def legend(self, **kw):
-                # custom horizontal legend below axes
-                ...
+            @brand_method
+            def legend(self, **kw): ...
 
     After patching:
 
@@ -66,7 +51,20 @@ class BrandAxes(Axes):
     """
 
     _brand_methods: list[str] = []
+    _brand_extra_patches: dict[str, str] = {}
     mpl: Axes  # MethodProxy at runtime, typed as Axes for IDE
+
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+        decorated, extra_patches = collect_brand_methods(cls)
+        explicit = list(cls.__dict__.get("_brand_methods", []))
+        merged = list(dict.fromkeys(explicit + decorated))
+        if merged:
+            cls._brand_methods = merged
+        cls_extra = dict(cls.__dict__.get("_brand_extra_patches", {}))
+        cls_extra.update(extra_patches)
+        if cls_extra:
+            cls._brand_extra_patches = cls_extra
 
 
 def patch_axes(
@@ -97,6 +95,8 @@ def patch_axes(
         Optional ``(ax, **kw) -> None`` called after patching.
     extra_patches :
         ``{target_name: source_name}`` for renamed methods.
+        Defaults to ``brand_cls._brand_extra_patches`` (populated
+        automatically by ``@brand_method(overwrite=...)``).
     proxy_attr :
         Attribute name for :class:`MethodProxy`.
     marker_attr :
@@ -119,9 +119,11 @@ def patch_axes(
     for name in methods or getattr(brand_cls, "_brand_methods", []):
         patch_method(ax, brand_cls, name)
 
+    all_extra = dict(getattr(brand_cls, "_brand_extra_patches", {}))
     if extra_patches:
-        for target_name, source_name in extra_patches.items():
-            patch_method(ax, brand_cls, target_name, source_name)
+        all_extra.update(extra_patches)
+    for target_name, source_name in all_extra.items():
+        patch_method(ax, brand_cls, target_name, source_name)
 
     if not patch_legend and hasattr(ax, proxy_attr):
         ax.legend = getattr(ax, proxy_attr).legend
