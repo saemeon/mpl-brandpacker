@@ -24,7 +24,16 @@ from my_brand.colors import Colors
 from my_brand.figure import MyFigure, make_fig
 from my_brand.sizes import FontSizes, Sizes
 
-__all__ = ["Colors", "FontSizes", "MyAxes", "MyFigure", "Sizes", "make_ax", "make_fig", "set_style"]
+__all__ = [
+    "Colors",
+    "FontSizes",
+    "MyAxes",
+    "MyFigure",
+    "Sizes",
+    "make_ax",
+    "make_fig",
+    "set_style",
+]
 
 mpl_brandpacker.configure(
     figure_cls=MyFigure,

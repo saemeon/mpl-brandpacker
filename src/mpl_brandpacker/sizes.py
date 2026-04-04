@@ -227,7 +227,7 @@ class SizesBase(metaclass=_SizesMeta):
             with FontSizes.scaled(0.5):
                 # all sizes halved
         """
-        if isinstance(factor_or_name, (int, float)):
+        if isinstance(factor_or_name, int | float):
             scaler = float(factor_or_name)
             affected = None
         else:
@@ -258,5 +258,5 @@ def _get_size_attrs(cls: type) -> list[str]:
         name
         for name in vars(cls)
         if not name.startswith("_")
-        and isinstance(type.__getattribute__(cls, name), (int, float))
+        and isinstance(type.__getattribute__(cls, name), int | float)
     ]
