@@ -53,9 +53,7 @@ if not is_configured():
         stacklevel=2,
     )
 
-_spec_plt = importlib.util.find_spec(
-    "matplotlib"
-)  # ty:ignore[possibly-missing-submodule]
+_spec_plt = importlib.util.find_spec("matplotlib")  # ty:ignore[possibly-missing-submodule]
 _bp_matplotlib = importlib.util.module_from_spec(_spec_plt)  # type: ignore[arg-type]  # ty:ignore[possibly-missing-submodule]
 _spec_plt.loader.exec_module(_bp_matplotlib)  # type: ignore[union-attr]
 sys.modules["_bp_matplotlib"] = _bp_matplotlib
